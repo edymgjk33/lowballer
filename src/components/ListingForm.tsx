@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Sparkles } from "lucide-react";
+import { Zap, Sparkles, AlertCircle } from "lucide-react";
 
 interface ListingFormProps {
   listingTitle: string;
@@ -18,6 +18,7 @@ interface ListingFormProps {
   setExtraNotes: (value: string) => void;
   isLoading: boolean;
   onGenerateOffer: () => void;
+  selectedCategory: string;
 }
 
 const ListingForm: React.FC<ListingFormProps> = ({
@@ -30,7 +31,8 @@ const ListingForm: React.FC<ListingFormProps> = ({
   extraNotes,
   setExtraNotes,
   isLoading,
-  onGenerateOffer
+  onGenerateOffer,
+  selectedCategory
 }) => {
   return (
     <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
@@ -44,11 +46,23 @@ const ListingForm: React.FC<ListingFormProps> = ({
         <p className="text-gray-600">Enter the details of the item you want to negotiate for</p>
       </CardHeader>
       <CardContent className="space-y-8">
+        {!selectedCategory && (
+          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <div className="flex items-center gap-2 text-amber-700">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-medium">Please select a category first for optimized results</span>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <Label htmlFor="title" className="text-base font-medium">Listing Title or Description</Label>
           <Input
             id="title"
-            placeholder="e.g., iPhone 14 Pro, 2018 Honda Civic, Vintage Couch"
+            placeholder={selectedCategory === 'cars' ? "e.g., 2018 Honda Civic LX, 45k miles" : 
+                        selectedCategory === 'real-estate' ? "e.g., 3BR/2BA Ranch Home, Downtown" :
+                        selectedCategory === 'electronics' ? "e.g., MacBook Pro 13-inch M2, Like New" :
+                        "e.g., iPhone 14 Pro, 2018 Honda Civic, Vintage Couch"}
             value={listingTitle}
             onChange={(e) => setListingTitle(e.target.value)}
             className="h-12 text-base border-2 focus:border-green-500 transition-colors"
@@ -79,6 +93,8 @@ const ListingForm: React.FC<ListingFormProps> = ({
               <SelectItem value="Zillow">Zillow</SelectItem>
               <SelectItem value="eBay">eBay</SelectItem>
               <SelectItem value="OfferUp">OfferUp</SelectItem>
+              <SelectItem value="AutoTrader">AutoTrader</SelectItem>
+              <SelectItem value="Cars.com">Cars.com</SelectItem>
               <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
@@ -88,7 +104,10 @@ const ListingForm: React.FC<ListingFormProps> = ({
           <Label htmlFor="notes" className="text-base font-medium">Extra Notes / Seller Info (Optional)</Label>
           <Textarea
             id="notes"
-            placeholder="Any additional context about the item or seller..."
+            placeholder={selectedCategory === 'cars' ? "e.g., One owner, recent maintenance, clean title..." :
+                        selectedCategory === 'real-estate' ? "e.g., Motivated seller, needs quick closing..." :
+                        selectedCategory === 'electronics' ? "e.g., Original packaging, barely used..." :
+                        "Any additional context about the item or seller..."}
             value={extraNotes}
             onChange={(e) => setExtraNotes(e.target.value)}
             className="min-h-[100px] text-base border-2 focus:border-green-500 transition-colors resize-none"
@@ -96,9 +115,21 @@ const ListingForm: React.FC<ListingFormProps> = ({
           />
         </div>
 
+        {selectedCategory && (
+          <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+            <div className="flex items-center gap-2 text-green-700 font-medium mb-1">
+              <Sparkles className="w-4 h-4" />
+              Category: {selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1).replace('-', ' ')}
+            </div>
+            <p className="text-sm text-green-600">
+              Negotiation strategy will be optimized for {selectedCategory.replace('-', ' ')} deals
+            </p>
+          </div>
+        )}
+
         <Button 
           onClick={onGenerateOffer}
-          disabled={isLoading}
+          disabled={isLoading || !selectedCategory}
           className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
           size="lg"
         >
