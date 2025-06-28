@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Eye, EyeOff } from "lucide-react";
+import { DollarSign, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -66,96 +65,119 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-7 h-7 text-white" />
+        <div className="text-center mb-10">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center shadow-xl">
+              <DollarSign className="w-9 h-9 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Lowbal</h1>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">Lowbal</h1>
           </div>
-          <p className="text-gray-600">Create your account</p>
+          <p className="text-gray-600 text-lg">Join thousands of smart shoppers</p>
         </div>
 
-        <Card className="border-green-100 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Sign Up</CardTitle>
+        <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-8">
+            <CardTitle className="text-3xl text-center font-bold text-gray-900">Create Account</CardTitle>
+            <p className="text-center text-gray-600 mt-2">Start saving money today</p>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+          <CardContent className="px-8 pb-8">
+            <form onSubmit={handleSignup} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-base font-medium">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-14 pl-12 text-base border-2 focus:border-green-500 transition-colors"
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-3">
+                <Label htmlFor="password" className="text-base font-medium">Password</Label>
                 <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="h-14 pl-12 pr-12 text-base border-2 focus:border-green-500 transition-colors"
                     required
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </Button>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="space-y-3">
+                <Label htmlFor="confirmPassword" className="text-base font-medium">Confirm Password</Label>
                 <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-14 pl-12 pr-12 text-base border-2 focus:border-green-500 transition-colors"
                     required
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </Button>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
+              <Button 
+                type="submit" 
+                className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    <User className="w-5 h-5 mr-3" />
+                    Create Account
+                  </>
+                )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center space-y-2">
-              <p className="text-sm text-gray-600">
+            <div className="mt-8 text-center space-y-4">
+              <p className="text-base text-gray-600">
                 Already have an account?{" "}
-                <Link to="/login" className="text-green-600 hover:text-green-700 font-medium">
+                <Link to="/login" className="text-green-600 hover:text-green-700 font-medium transition-colors">
                   Sign in
                 </Link>
               </p>
-              <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-                Back to home
+              <Link to="/" className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                ← Back to home
               </Link>
             </div>
           </CardContent>

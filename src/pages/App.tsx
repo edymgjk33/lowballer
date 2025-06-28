@@ -84,42 +84,68 @@ const AppPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <AppHeader />
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-12">
         <AppHero />
 
         {/* URL Parser Section */}
-        <ListingUrlParser onListingParsed={handleListingParsed} />
+        <div className="mb-12">
+          <ListingUrlParser onListingParsed={handleListingParsed} />
+        </div>
 
-        {/* grid layout with input form and results */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          <ListingForm
-            listingTitle={listingTitle}
-            setListingTitle={setListingTitle}
-            listingPrice={listingPrice}
-            setListingPrice={setListingPrice}
-            platform={platform}
-            setPlatform={setPlatform}
-            extraNotes={extraNotes}
-            setExtraNotes={setExtraNotes}
-            isLoading={isLoading}
-            onGenerateOffer={handleGenerateOffer}
-          />
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-2 gap-12">
+          <div className="space-y-8">
+            <ListingForm
+              listingTitle={listingTitle}
+              setListingTitle={setListingTitle}
+              listingPrice={listingPrice}
+              setListingPrice={setListingPrice}
+              platform={platform}
+              setPlatform={setPlatform}
+              extraNotes={extraNotes}
+              setExtraNotes={setExtraNotes}
+              isLoading={isLoading}
+              onGenerateOffer={handleGenerateOffer}
+            />
+          </div>
 
-          <NegotiationResults
-            counterOffer={counterOffer}
-            negotiationMessage={negotiationMessage}
-            listingPrice={listingPrice}
-            onCopyToClipboard={copyToClipboard}
-          />
+          <div className="space-y-8">
+            <NegotiationResults
+              counterOffer={counterOffer}
+              negotiationMessage={negotiationMessage}
+              listingPrice={listingPrice}
+              onCopyToClipboard={copyToClipboard}
+            />
+          </div>
+        </div>
+
+        {/* Success Stories */}
+        <div className="mt-20 bg-white rounded-3xl p-12 shadow-xl border border-green-100">
+          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">Recent Success Stories</h3>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6 bg-green-50 rounded-2xl">
+              <div className="text-2xl font-bold text-green-600 mb-2">$450 saved</div>
+              <div className="text-gray-600">MacBook Pro on Facebook Marketplace</div>
+            </div>
+            <div className="text-center p-6 bg-blue-50 rounded-2xl">
+              <div className="text-2xl font-bold text-blue-600 mb-2">$1,200 saved</div>
+              <div className="text-gray-600">Used car on Craigslist</div>
+            </div>
+            <div className="text-center p-6 bg-purple-50 rounded-2xl">
+              <div className="text-2xl font-bold text-purple-600 mb-2">$85 saved</div>
+              <div className="text-gray-600">Designer chair on OfferUp</div>
+            </div>
+          </div>
         </div>
 
         {/* Disclaimer */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-500 max-w-2xl mx-auto">
-            This is AI-generated guidance and does not guarantee a result. Always be respectful and honest in your negotiations.
+        <div className="mt-16 text-center">
+          <p className="text-sm text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            This is AI-generated guidance and does not guarantee a result. Always be respectful and honest in your negotiations. 
+            Results may vary based on market conditions and seller preferences.
           </p>
         </div>
       </div>

@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link, Loader2 } from "lucide-react";
+import { Link, Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ListingUrlParserProps {
@@ -74,40 +73,47 @@ const ListingUrlParser = ({ onListingParsed }: ListingUrlParserProps) => {
   };
 
   return (
-    <Card className="border-green-100 shadow-lg mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Link className="w-5 h-5 text-green-600" />
-          Parse Listing URL
+    <Card className="border-0 shadow-xl bg-gradient-to-r from-blue-50 to-purple-50">
+      <CardHeader className="pb-6">
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <Link className="w-6 h-6 text-white" />
+          </div>
+          Quick Parse Listing URL
         </CardTitle>
+        <p className="text-gray-600">Paste any listing URL to automatically extract details</p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="listing-url">Paste Listing URL</Label>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Label htmlFor="listing-url" className="text-base font-medium">Paste Listing URL</Label>
             <Input
               id="listing-url"
               type="url"
               placeholder="https://facebook.com/marketplace/item/... or any listing URL"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
+              className="h-12 text-base border-2 focus:border-blue-500 transition-colors"
             />
           </div>
           <Button 
             onClick={parseUrl} 
             disabled={isLoading || !url}
-            className="w-full bg-green-600 hover:bg-green-700"
+            className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-medium"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                 Parsing URL...
               </>
             ) : (
-              'Parse Listing Information'
+              <>
+                <Sparkles className="w-5 h-5 mr-3" />
+                Parse Listing Information
+              </>
             )}
           </Button>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 text-center">
             Supports Facebook Marketplace, Craigslist, eBay, Zillow, OfferUp, and more
           </p>
         </div>
