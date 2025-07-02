@@ -79,7 +79,7 @@ const Login = () => {
             </div>
             <h1 className="text-5xl font-black bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">Lowbal</h1>
           </div>
-          <p className="text-gray-300 text-xl font-medium">Welcome back! Sign in to your account</p>
+          <p className="text-gray-200 text-xl font-bold">Welcome back! Sign in to your account</p>
         </div>
 
         <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20">
@@ -89,39 +89,39 @@ const Login = () => {
           <CardContent className="px-8 pb-8">
             <form onSubmit={handleLogin} className="space-y-8">
               <div className="space-y-4">
-                <Label htmlFor="email" className="text-lg font-bold text-white">Email Address</Label>
+                <Label htmlFor="email" className="text-lg font-black text-white">Email Address</Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-16 pl-14 text-lg border-2 border-white/20 bg-white/10 backdrop-blur-xl text-white placeholder:text-gray-400 focus:border-emerald-400 transition-all duration-300 rounded-2xl"
+                    className="h-16 pl-14 text-lg border-2 border-white/20 bg-white/10 backdrop-blur-xl text-white placeholder:text-gray-300 focus:border-emerald-400 transition-all duration-300 rounded-2xl font-bold"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-4">
-                <Label htmlFor="password" className="text-lg font-bold text-white">Password</Label>
+                <Label htmlFor="password" className="text-lg font-black text-white">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-16 pl-14 pr-14 text-lg border-2 border-white/20 bg-white/10 backdrop-blur-xl text-white placeholder:text-gray-400 focus:border-emerald-400 transition-all duration-300 rounded-2xl"
+                    className="h-16 pl-14 pr-14 text-lg border-2 border-white/20 bg-white/10 backdrop-blur-xl text-white placeholder:text-gray-300 focus:border-emerald-400 transition-all duration-300 rounded-2xl font-bold"
                     required
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12 text-gray-400 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12 text-gray-300 hover:text-white"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
@@ -149,13 +149,13 @@ const Login = () => {
             </form>
 
             <div className="mt-10 text-center space-y-6">
-              <p className="text-lg text-gray-300 font-medium">
+              <p className="text-lg text-gray-200 font-bold">
                 Don't have an account?{" "}
-                <Link to="/signup" className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors">
+                <Link to="/signup" className="text-emerald-300 hover:text-emerald-200 font-black transition-colors">
                   Sign up for free
                 </Link>
               </p>
-              <Link to="/" className="text-gray-400 hover:text-white transition-colors font-medium">
+              <Link to="/" className="text-gray-300 hover:text-white transition-colors font-bold">
                 ← Back to home
               </Link>
             </div>

@@ -8,6 +8,9 @@ import SavingsTracker from '../components/SavingsTracker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Star, History, TrendingUp, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export interface NegotiationTab {
   id: string;
@@ -80,6 +83,10 @@ const AppPage = () => {
       dealClosed: true
     }
   ]);
+  const [showDealDialog, setShowDealDialog] = useState(false);
+  const [closingTabId, setClosingTabId] = useState<string>('');
+  const [dealClosed, setDealClosed] = useState(false);
+  const [finalPrice, setFinalPrice] = useState('');
   const { toast } = useToast();
 
   const createNewNegotiation = () => {
@@ -115,24 +122,27 @@ const AppPage = () => {
     const tab = negotiationTabs.find(t => t.id === tabId);
     if (!tab) return;
 
-    // Show deal completion dialog
-    const dealClosed = window.confirm('Did you close this deal?');
-    
-    if (dealClosed) {
-      const finalPriceStr = window.prompt('What was the final price?');
-      const finalPrice = finalPriceStr ? parseFloat(finalPriceStr) : tab.originalPrice;
-      
-      if (finalPrice && finalPrice < tab.originalPrice) {
-        const savings = tab.originalPrice - finalPrice;
+    setClosingTabId(tabId);
+    setShowDealDialog(true);
+  };
+
+  const handleDealCompletion = () => {
+    const tab = negotiationTabs.find(t => t.id === closingTabId);
+    if (!tab) return;
+
+    if (dealClosed && finalPrice) {
+      const finalPriceNum = parseFloat(finalPrice);
+      if (finalPriceNum && finalPriceNum < tab.originalPrice) {
+        const savings = tab.originalPrice - finalPriceNum;
         const savingsPercentage = Math.round((savings / tab.originalPrice) * 100);
         
         const completedDeal: CompletedDeal = {
-          id: tabId,
+          id: closingTabId,
           title: tab.title,
           category: tab.category,
           platform: tab.platform,
           originalPrice: tab.originalPrice,
-          finalPrice,
+          finalPrice: finalPriceNum,
           savings,
           savingsPercentage,
           completedAt: new Date(),
@@ -148,7 +158,11 @@ const AppPage = () => {
       }
     }
     
-    setNegotiationTabs(prev => prev.filter(t => t.id !== tabId));
+    setNegotiationTabs(prev => prev.filter(t => t.id !== closingTabId));
+    setShowDealDialog(false);
+    setClosingTabId('');
+    setDealClosed(false);
+    setFinalPrice('');
   };
 
   const totalSavings = completedDeals.reduce((sum, deal) => sum + deal.savings, 0);
@@ -287,6 +301,77 @@ const AppPage = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Deal Completion Dialog */}
+      <Dialog open={showDealDialog} onOpenChange={setShowDealDialog}>
+        <DialogContent className="bg-gradient-to-br from-white/95 to-white/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-gray-900 mb-2">
+              Deal Completion
+            </DialogTitle>
+            <DialogDescription className="text-gray-700 font-medium">
+              Did you successfully close this deal?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 pt-4">
+            <div className="flex gap-4">
+              <Button
+                onClick={() => setDealClosed(true)}
+                className={`flex-1 h-12 rounded-xl font-bold transition-all duration-300 ${
+                  dealClosed 
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Yes, Deal Closed! 🎉
+              </Button>
+              <Button
+                onClick={() => setDealClosed(false)}
+                className={`flex-1 h-12 rounded-xl font-bold transition-all duration-300 ${
+                  !dealClosed 
+                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                No, Just Closing
+              </Button>
+            </div>
+
+            {dealClosed && (
+              <div className="space-y-4 p-4 bg-green-50 rounded-2xl border border-green-200">
+                <Label htmlFor="finalPrice" className="text-lg font-bold text-green-800">
+                  What was the final price?
+                </Label>
+                <Input
+                  id="finalPrice"
+                  type="number"
+                  placeholder="Enter final price"
+                  value={finalPrice}
+                  onChange={(e) => setFinalPrice(e.target.value)}
+                  className="h-12 text-lg border-2 border-green-300 focus:border-green-500 bg-white text-gray-900 font-bold"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4">
+              <Button
+                onClick={() => setShowDealDialog(false)}
+                variant="outline"
+                className="flex-1 h-12 rounded-xl font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDealCompletion}
+                className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-all duration-300"
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

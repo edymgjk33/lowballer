@@ -164,7 +164,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
               <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 AI Chat Assistant
               </div>
-              <p className="text-lg text-gray-600 font-normal">Paste seller messages and get AI-powered responses</p>
+              <p className="text-lg text-gray-700 font-normal">Paste seller messages and get AI-powered responses</p>
             </div>
           </CardTitle>
         </CardHeader>
@@ -179,7 +179,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
               placeholder={selectedCategory ? exampleMessages[selectedCategory as keyof typeof exampleMessages] : "Paste the seller's message here..."}
               value={sellerMessage}
               onChange={(e) => setSellerMessage(e.target.value)}
-              className="min-h-[150px] text-base border-2 focus:border-blue-500 transition-all duration-300 resize-none bg-white/80 backdrop-blur-sm"
+              className="min-h-[150px] text-base border-2 focus:border-blue-500 transition-all duration-300 resize-none bg-white/80 backdrop-blur-sm text-gray-800 placeholder:text-gray-500"
               rows={6}
             />
           </div>
@@ -190,7 +190,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
                 <Sparkles className="w-5 h-5" />
                 Category: {selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1).replace('-', ' ')}
               </div>
-              <p className="text-blue-600">
+              <p className="text-blue-600 font-medium">
                 AI responses will be optimized for {selectedCategory.replace('-', ' ')} negotiations with specialized language and tactics
               </p>
             </div>
@@ -200,7 +200,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
             <Button 
               onClick={handleSendMessage}
               disabled={isLoading || !sellerMessage.trim()}
-              className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
+              className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 text-white"
             >
               {isLoading ? (
                 <>
@@ -219,7 +219,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
               <Button 
                 onClick={clearConversation}
                 variant="outline"
-                className="h-14 px-6 border-2 hover:bg-gray-50"
+                className="h-14 px-6 border-2 hover:bg-gray-50 text-gray-700 border-gray-300"
               >
                 <RefreshCw className="w-5 h-5" />
               </Button>
@@ -241,7 +241,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
               <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
                 Conversation Thread
               </div>
-              <p className="text-lg text-gray-600 font-normal">Your negotiation conversation with AI assistance</p>
+              <p className="text-lg text-gray-700 font-normal">Your negotiation conversation with AI assistance</p>
             </div>
             {messages.length > 0 && (
               <div className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
@@ -297,14 +297,14 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
                           </span>
                         )}
                       </div>
-                      <p className="text-base leading-relaxed">{message.content}</p>
+                      <p className="text-base leading-relaxed font-medium">{message.content}</p>
                       {message.type === 'ai' && (
                         <div className="flex gap-2 mt-4">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => copyMessage(message.content)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 font-medium"
                           >
                             <Copy className="w-4 h-4 mr-2" />
                             Copy
@@ -313,7 +313,7 @@ const AIConversationChat: React.FC<AIConversationChatProps> = ({ selectedCategor
                             variant="ghost"
                             size="sm"
                             onClick={() => generateAIResponse(messages.find(m => m.isSellerMessage)?.content || '')}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 font-medium"
                           >
                             <RefreshCw className="w-4 h-4 mr-2" />
                             Regenerate

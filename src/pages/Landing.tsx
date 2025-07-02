@@ -37,12 +37,12 @@ const Landing = () => {
             </div>
             <div className="flex items-center gap-4">
               <Link to="/login">
-                <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 font-medium">
+                <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20 transition-all duration-300 font-bold text-lg px-6 py-3 rounded-xl border border-white/20">
                   Sign In
                 </Button>
               </Link>
               <Link to="/signup">
-                <Button className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:from-emerald-600 hover:via-cyan-600 hover:to-blue-600 text-white font-bold px-8 py-3 rounded-2xl shadow-2xl hover:shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300 border-0">
+                <Button className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:from-emerald-600 hover:via-cyan-600 hover:to-blue-600 text-white font-black px-8 py-3 rounded-2xl shadow-2xl hover:shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300 border-0 text-lg">
                   Try Lowbal Free
                   <Sparkles className="w-5 h-5 ml-2" />
                 </Button>
@@ -93,24 +93,24 @@ const Landing = () => {
                 </Button>
               </Link>
               <Link to="/demo">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-xl px-12 py-6 rounded-2xl border-2 border-white/20 text-white hover:bg-white/10 backdrop-blur-xl font-bold transition-all duration-300 hover:scale-105">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto text-xl px-12 py-6 rounded-2xl border-2 border-white/30 text-white hover:bg-white/10 backdrop-blur-xl font-black transition-all duration-300 hover:scale-105 bg-white/5">
                   Watch Demo
                 </Button>
               </Link>
             </div>
             
-            <div className="flex items-center gap-8 text-sm text-gray-400">
+            <div className="flex items-center gap-8 text-sm text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="font-medium">Free to use</span>
+                <span className="font-bold">Free to use</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="font-medium">No signup required</span>
+                <span className="font-bold">No signup required</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="font-medium">Works on all platforms</span>
+                <span className="font-bold">Works on all platforms</span>
               </div>
             </div>
           </div>
@@ -125,14 +125,14 @@ const Landing = () => {
               />
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
-                  <span className="text-gray-300 font-medium">Original Price:</span>
-                  <span className="font-bold text-white line-through">$1,200</span>
+                  <span className="text-gray-200 font-bold">Original Price:</span>
+                  <span className="font-black text-white line-through text-xl">$1,200</span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl border border-emerald-500/30">
-                  <span className="text-emerald-300 font-bold">Your Offer:</span>
-                  <span className="text-3xl font-black text-emerald-400">$850</span>
+                  <span className="text-emerald-200 font-black">Your Offer:</span>
+                  <span className="text-3xl font-black text-emerald-300">$850</span>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-xl font-bold text-lg shadow-xl">
+                <div className="text-center p-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-xl font-black text-lg shadow-xl">
                   💰 You saved $350 (29% off)!
                 </div>
               </div>
@@ -146,7 +146,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h3 className="text-4xl font-black text-white mb-6">Works on All Major Platforms</h3>
-            <p className="text-xl text-gray-300 font-medium">Optimized strategies for every marketplace</p>
+            <p className="text-xl text-gray-200 font-bold">Optimized strategies for every marketplace</p>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 items-center justify-items-center">
@@ -155,7 +155,7 @@ const Landing = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl">
                 <span className="text-white font-black text-2xl">f</span>
               </div>
-              <span className="text-sm font-bold text-white">Facebook</span>
+              <span className="text-sm font-black text-white">Facebook</span>
             </div>
             
             {/* Craigslist */}
@@ -163,7 +163,7 @@ const Landing = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
                 <span className="text-white font-black text-xl">CL</span>
               </div>
-              <span className="text-sm font-bold text-white">Craigslist</span>
+              <span className="text-sm font-black text-white">Craigslist</span>
             </div>
             
             {/* eBay */}
@@ -171,7 +171,7 @@ const Landing = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
                 <span className="text-white font-black text-2xl">e</span>
               </div>
-              <span className="text-sm font-bold text-white">eBay</span>
+              <span className="text-sm font-black text-white">eBay</span>
             </div>
             
             {/* Zillow */}
@@ -179,7 +179,7 @@ const Landing = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-2xl">
                 <span className="text-white font-black text-2xl">Z</span>
               </div>
-              <span className="text-sm font-bold text-white">Zillow</span>
+              <span className="text-sm font-black text-white">Zillow</span>
             </div>
             
             {/* OfferUp */}
@@ -187,7 +187,7 @@ const Landing = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-2xl">
                 <span className="text-white font-black text-2xl">O</span>
               </div>
-              <span className="text-sm font-bold text-white">OfferUp</span>
+              <span className="text-sm font-black text-white">OfferUp</span>
             </div>
           </div>
         </div>
@@ -198,7 +198,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
             <h3 className="text-6xl font-black text-white mb-8">How Lowbal Works</h3>
-            <p className="text-2xl text-gray-300 max-w-4xl mx-auto font-medium">
+            <p className="text-2xl text-gray-200 max-w-4xl mx-auto font-bold">
               Our AI analyzes thousands of successful negotiations to craft the perfect strategy for your specific situation
             </p>
           </div>
@@ -215,7 +215,7 @@ const Landing = () => {
                   className="w-full h-48 object-cover rounded-2xl mb-8 shadow-2xl"
                 />
                 <h4 className="text-2xl font-black text-white mb-4">1. Input Listing Details</h4>
-                <p className="text-gray-300 text-lg leading-relaxed font-medium">
+                <p className="text-gray-200 text-lg leading-relaxed font-bold">
                   Paste the item title, price, and platform. Add any extra context about the seller or condition.
                 </p>
               </CardContent>
@@ -232,7 +232,7 @@ const Landing = () => {
                   className="w-full h-48 object-cover rounded-2xl mb-8 shadow-2xl"
                 />
                 <h4 className="text-2xl font-black text-white mb-4">2. AI Calculates Strategy</h4>
-                <p className="text-gray-300 text-lg leading-relaxed font-medium">
+                <p className="text-gray-200 text-lg leading-relaxed font-bold">
                   Our algorithm analyzes market data, platform patterns, and pricing psychology to determine the optimal offer.
                 </p>
               </CardContent>
@@ -249,7 +249,7 @@ const Landing = () => {
                   className="w-full h-48 object-cover rounded-2xl mb-8 shadow-2xl"
                 />
                 <h4 className="text-2xl font-black text-white mb-4">3. Send Perfect Message</h4>
-                <p className="text-gray-300 text-lg leading-relaxed font-medium">
+                <p className="text-gray-200 text-lg leading-relaxed font-bold">
                   Copy our AI-crafted message that's proven to get positive responses and close deals at lower prices.
                 </p>
               </CardContent>
@@ -263,7 +263,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
             <h3 className="text-6xl font-black text-white mb-8">Why Lowbal Gets Results</h3>
-            <p className="text-2xl text-gray-300 max-w-4xl mx-auto font-medium">
+            <p className="text-2xl text-gray-200 max-w-4xl mx-auto font-bold">
               Built on proven negotiation psychology and trained on thousands of successful deals
             </p>
           </div>
@@ -277,7 +277,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <h4 className="text-3xl font-black text-white mb-4">Smart Platform Recognition</h4>
-                    <p className="text-gray-300 text-xl leading-relaxed font-medium">
+                    <p className="text-gray-200 text-xl leading-relaxed font-bold">
                       Different platforms require different approaches. Our AI knows Facebook Marketplace sellers behave differently than Craigslist users.
                     </p>
                   </div>
@@ -289,7 +289,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <h4 className="text-3xl font-black text-white mb-4">Psychology-Based Messaging</h4>
-                    <p className="text-gray-300 text-xl leading-relaxed font-medium">
+                    <p className="text-gray-200 text-xl leading-relaxed font-bold">
                       Messages crafted using proven negotiation techniques that build rapport while maintaining leverage.
                     </p>
                   </div>
@@ -301,7 +301,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <h4 className="text-3xl font-black text-white mb-4">Price-Aware Calculations</h4>
-                    <p className="text-gray-300 text-xl leading-relaxed font-medium">
+                    <p className="text-gray-200 text-xl leading-relaxed font-bold">
                       High-value items need conservative offers, while cheaper items can handle aggressive discounts. We calculate the sweet spot.
                     </p>
                   </div>
@@ -322,7 +322,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <div className="text-4xl font-black text-emerald-400">73%</div>
-                    <div className="text-sm text-gray-300 font-medium">Success Rate</div>
+                    <div className="text-sm text-gray-200 font-bold">Success Rate</div>
                   </div>
                 </div>
               </div>
@@ -333,7 +333,7 @@ const Landing = () => {
                   </div>
                   <div>
                     <div className="text-4xl font-black text-cyan-400">50K+</div>
-                    <div className="text-sm text-gray-300 font-medium">Happy Users</div>
+                    <div className="text-sm text-gray-200 font-bold">Happy Users</div>
                   </div>
                 </div>
               </div>
@@ -354,7 +354,7 @@ const Landing = () => {
           <h3 className="text-6xl font-black text-white mb-10">
             Ready to Save Money on Your Next Purchase?
           </h3>
-          <p className="text-2xl text-white/90 mb-12 leading-relaxed font-medium">
+          <p className="text-2xl text-white mb-12 leading-relaxed font-bold">
             Join thousands of smart shoppers who use Lowbal to negotiate better deals every day.
           </p>
           <Link to="/app">
@@ -363,7 +363,7 @@ const Landing = () => {
               <ArrowRight className="w-8 h-8 ml-4" />
             </Button>
           </Link>
-          <p className="text-white/80 mt-8 text-xl font-medium">
+          <p className="text-white mt-8 text-xl font-bold">
             No signup required • Works instantly • Free forever
           </p>
         </div>
@@ -382,7 +382,7 @@ const Landing = () => {
             </div>
             <span className="text-3xl font-black text-white">Lowbal</span>
           </div>
-          <p className="text-center text-gray-400 text-xl font-medium">
+          <p className="text-center text-gray-200 text-xl font-bold">
             © 2024 Lowbal. AI-powered negotiation made simple.
           </p>
         </div>
