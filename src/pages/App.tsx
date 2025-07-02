@@ -6,11 +6,12 @@ import ReviewsTab from '../components/ReviewsTab';
 import OrderHistory from '../components/OrderHistory';
 import SavingsTracker from '../components/SavingsTracker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Star, History, TrendingUp, Plus, Sparkles } from "lucide-react";
+import { MessageSquare, Star, History, TrendingUp, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import BackgroundLayout from '../components/shared/BackgroundLayout';
 
 export interface NegotiationTab {
   id: string;
@@ -169,137 +170,106 @@ const AppPage = () => {
   const totalDeals = completedDeals.length;
   const averageSavings = totalDeals > 0 ? Math.round(totalSavings / totalDeals) : 0;
 
+  const tabsConfig = [
+    { value: 'negotiate', label: 'Negotiate', icon: MessageSquare, count: negotiationTabs.length, gradient: 'from-emerald-500 to-cyan-500' },
+    { value: 'reviews', label: 'Reviews', icon: Star, gradient: 'from-cyan-500 to-blue-500' },
+    { value: 'history', label: 'History', icon: History, count: totalDeals, gradient: 'from-blue-500 to-purple-500' },
+    { value: 'analytics', label: 'Analytics', icon: TrendingUp, gradient: 'from-purple-500 to-pink-500' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+    <BackgroundLayout>
+      <AppHeader />
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-8 right-8 z-50">
+        <Button
+          onClick={createNewNegotiation}
+          className="w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:from-emerald-600 hover:via-cyan-600 hover:to-blue-600 shadow-2xl hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-110 border-0"
+        >
+          <Plus className="w-10 h-10 text-white" />
+        </Button>
       </div>
 
-      {/* Background Image */}
-      <div className="absolute inset-0 opacity-10">
-        <img 
-          src="https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1920&h=1080&fit=crop&auto=format"
-          alt="Background"
-          className="w-full h-full object-cover"
-        />
-      </div>
+      <SavingsTracker 
+        totalSavings={totalSavings}
+        totalDeals={totalDeals}
+        averageSavings={averageSavings}
+      />
 
-      <div className="relative z-10">
-        <AppHeader />
-
-        {/* Floating Action Button */}
-        <div className="fixed bottom-8 right-8 z-50">
-          <Button
-            onClick={createNewNegotiation}
-            className="w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:from-emerald-600 hover:via-cyan-600 hover:to-blue-600 shadow-2xl hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-110 border-0"
-          >
-            <Plus className="w-10 h-10 text-white" />
-          </Button>
-        </div>
-
-        {/* Savings Tracker Banner */}
-        <SavingsTracker 
-          totalSavings={totalSavings}
-          totalDeals={totalDeals}
-          averageSavings={averageSavings}
-        />
-
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Main Tabs */}
-          <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-8 bg-black/20 backdrop-blur-xl shadow-2xl rounded-3xl p-3 h-24 border border-white/20">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8 bg-black/20 backdrop-blur-xl shadow-2xl rounded-3xl p-3 h-24 border border-white/20">
+            {tabsConfig.map((tab) => (
               <TabsTrigger 
-                value="negotiate" 
-                className="text-lg font-bold h-18 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
+                key={tab.value}
+                value={tab.value} 
+                className={`text-lg font-bold h-18 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:${tab.gradient} data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white`}
               >
-                <MessageSquare className="w-6 h-6 mr-3" />
-                Negotiate ({negotiationTabs.length})
+                <tab.icon className="w-6 h-6 mr-3" />
+                {tab.label} {tab.count !== undefined && `(${tab.count})`}
               </TabsTrigger>
-              <TabsTrigger 
-                value="reviews" 
-                className="text-lg font-bold h-18 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
-              >
-                <Star className="w-6 h-6 mr-3" />
-                Reviews
-              </TabsTrigger>
-              <TabsTrigger 
-                value="history" 
-                className="text-lg font-bold h-18 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
-              >
-                <History className="w-6 h-6 mr-3" />
-                History ({totalDeals})
-              </TabsTrigger>
-              <TabsTrigger 
-                value="analytics" 
-                className="text-lg font-bold h-18 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
-              >
-                <TrendingUp className="w-6 h-6 mr-3" />
-                Analytics
-              </TabsTrigger>
-            </TabsList>
+            ))}
+          </TabsList>
 
-            <TabsContent value="negotiate" className="space-y-8">
-              <NegotiationTabs
-                tabs={negotiationTabs}
-                onUpdateTab={updateNegotiationTab}
-                onCloseTab={closeNegotiationTab}
-                onCreateNew={createNewNegotiation}
-              />
-            </TabsContent>
+          <TabsContent value="negotiate" className="space-y-8">
+            <NegotiationTabs
+              tabs={negotiationTabs}
+              onUpdateTab={updateNegotiationTab}
+              onCloseTab={closeNegotiationTab}
+              onCreateNew={createNewNegotiation}
+            />
+          </TabsContent>
 
-            <TabsContent value="reviews">
-              <ReviewsTab />
-            </TabsContent>
+          <TabsContent value="reviews">
+            <ReviewsTab />
+          </TabsContent>
 
-            <TabsContent value="history">
-              <OrderHistory deals={completedDeals} />
-            </TabsContent>
+          <TabsContent value="history">
+            <OrderHistory deals={completedDeals} />
+          </TabsContent>
 
-            <TabsContent value="analytics">
-              <div className="grid lg:grid-cols-2 gap-8">
-                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-                  <h3 className="text-3xl font-black text-white mb-8">Savings Analytics</h3>
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-6 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 backdrop-blur-xl rounded-2xl border border-emerald-500/30">
-                      <span className="text-emerald-300 font-bold text-lg">Total Saved</span>
-                      <span className="text-3xl font-black text-emerald-400">${totalSavings.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-6 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-xl rounded-2xl border border-cyan-500/30">
-                      <span className="text-cyan-300 font-bold text-lg">Deals Completed</span>
-                      <span className="text-3xl font-black text-cyan-400">{totalDeals}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl border border-blue-500/30">
-                      <span className="text-blue-300 font-bold text-lg">Average Savings</span>
-                      <span className="text-3xl font-black text-blue-400">${averageSavings}</span>
-                    </div>
+          <TabsContent value="analytics">
+            <div className="grid lg:grid-cols-2 gap-8">
+              <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
+                <h3 className="text-3xl font-black text-white mb-8">Savings Analytics</h3>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-6 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 backdrop-blur-xl rounded-2xl border border-emerald-500/30">
+                    <span className="text-emerald-300 font-bold text-lg">Total Saved</span>
+                    <span className="text-3xl font-black text-emerald-400">${totalSavings.toLocaleString()}</span>
                   </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-                  <h3 className="text-3xl font-black text-white mb-8">Category Breakdown</h3>
-                  <div className="space-y-4">
-                    {['cars', 'electronics', 'furniture'].map(category => {
-                      const categoryDeals = completedDeals.filter(deal => deal.category === category);
-                      const categorySavings = categoryDeals.reduce((sum, deal) => sum + deal.savings, 0);
-                      return (
-                        <div key={category} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
-                          <span className="capitalize font-bold text-white text-lg">{category}</span>
-                          <div className="text-right">
-                            <div className="font-black text-emerald-400 text-xl">${categorySavings}</div>
-                            <div className="text-sm text-gray-300 font-medium">{categoryDeals.length} deals</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="flex items-center justify-between p-6 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-xl rounded-2xl border border-cyan-500/30">
+                    <span className="text-cyan-300 font-bold text-lg">Deals Completed</span>
+                    <span className="text-3xl font-black text-cyan-400">{totalDeals}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl border border-blue-500/30">
+                    <span className="text-blue-300 font-bold text-lg">Average Savings</span>
+                    <span className="text-3xl font-black text-blue-400">${averageSavings}</span>
                   </div>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+              
+              <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
+                <h3 className="text-3xl font-black text-white mb-8">Category Breakdown</h3>
+                <div className="space-y-4">
+                  {['cars', 'electronics', 'furniture'].map(category => {
+                    const categoryDeals = completedDeals.filter(deal => deal.category === category);
+                    const categorySavings = categoryDeals.reduce((sum, deal) => sum + deal.savings, 0);
+                    return (
+                      <div key={category} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
+                        <span className="capitalize font-bold text-white text-lg">{category}</span>
+                        <div className="text-right">
+                          <div className="font-black text-emerald-400 text-xl">${categorySavings}</div>
+                          <div className="text-sm text-gray-300 font-medium">{categoryDeals.length} deals</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Deal Completion Dialog */}
@@ -372,7 +342,7 @@ const AppPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </BackgroundLayout>
   );
 };
 
