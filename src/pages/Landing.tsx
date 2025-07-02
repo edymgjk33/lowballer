@@ -204,7 +204,7 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-12">
-            <Card className="border-0 shadow-2xl hover:shadow-emerald-500/25 transition-all duration-500 group bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 transform hover:scale-105">
+            <Card className="border-0 shadow-2xl hover:shadow-emerald-500/25 transition-all duration-500 group bg-white/95 backdrop-blur-xl border border-gray-200 transform hover:scale-105">
               <CardContent className="p-10 text-center">
                 <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-500 shadow-2xl">
                   <Target className="w-12 h-12 text-white" />
@@ -214,14 +214,14 @@ const Landing = () => {
                   alt="Input listing details on smartphone"
                   className="w-full h-48 object-cover rounded-2xl mb-8 shadow-2xl"
                 />
-                <h4 className="text-2xl font-black text-white mb-4">1. Input Listing Details</h4>
-                <p className="text-gray-200 text-lg leading-relaxed font-bold">
+                <h4 className="text-2xl font-black text-gray-900 mb-4">1. Input Listing Details</h4>
+                <p className="text-gray-800 text-lg leading-relaxed font-bold">
                   Paste the item title, price, and platform. Add any extra context about the seller or condition.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-2xl hover:shadow-cyan-500/25 transition-all duration-500 group bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 transform hover:scale-105">
+            <Card className="border-0 shadow-2xl hover:shadow-cyan-500/25 transition-all duration-500 group bg-white/95 backdrop-blur-xl border border-gray-200 transform hover:scale-105">
               <CardContent className="p-10 text-center">
                 <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-500 shadow-2xl">
                   <Zap className="w-12 h-12 text-white" />
@@ -231,14 +231,14 @@ const Landing = () => {
                   alt="AI analyzing negotiation data"
                   className="w-full h-48 object-cover rounded-2xl mb-8 shadow-2xl"
                 />
-                <h4 className="text-2xl font-black text-white mb-4">2. AI Calculates Strategy</h4>
-                <p className="text-gray-200 text-lg leading-relaxed font-bold">
+                <h4 className="text-2xl font-black text-gray-900 mb-4">2. AI Calculates Strategy</h4>
+                <p className="text-gray-800 text-lg leading-relaxed font-bold">
                   Our algorithm analyzes market data, platform patterns, and pricing psychology to determine the optimal offer.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-2xl hover:shadow-blue-500/25 transition-all duration-500 group bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 transform hover:scale-105">
+            <Card className="border-0 shadow-2xl hover:shadow-blue-500/25 transition-all duration-500 group bg-white/95 backdrop-blur-xl border border-gray-200 transform hover:scale-105">
               <CardContent className="p-10 text-center">
                 <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-500 shadow-2xl">
                   <MessageSquare className="w-12 h-12 text-white" />
@@ -248,8 +248,8 @@ const Landing = () => {
                   alt="Successful negotiation message on phone"
                   className="w-full h-48 object-cover rounded-2xl mb-8 shadow-2xl"
                 />
-                <h4 className="text-2xl font-black text-white mb-4">3. Send Perfect Message</h4>
-                <p className="text-gray-200 text-lg leading-relaxed font-bold">
+                <h4 className="text-2xl font-black text-gray-900 mb-4">3. Send Perfect Message</h4>
+                <p className="text-gray-800 text-lg leading-relaxed font-bold">
                   Copy our AI-crafted message that's proven to get positive responses and close deals at lower prices.
                 </p>
               </CardContent>
