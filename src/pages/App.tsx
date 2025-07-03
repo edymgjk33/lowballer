@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import AppHeader from '../components/AppHeader';
-import NegotiationTabs from '../components/NegotiationTabs';
-import ReviewsTab from '../components/ReviewsTab';
-import OrderHistory from '../components/OrderHistory';
-import SavingsTracker from '../components/SavingsTracker';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Star, History, TrendingUp, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import BackgroundLayout from '../components/shared/BackgroundLayout';
+import { Link } from "react-router-dom";
+import { calculateCounterOffer, generateNegotiationMessage } from '../utils/negotiationUtils';
 
 export interface NegotiationTab {
   id: string;
@@ -44,305 +34,320 @@ export interface CompletedDeal {
 }
 
 const AppPage = () => {
-  const [activeMainTab, setActiveMainTab] = useState('negotiate');
-  const [negotiationTabs, setNegotiationTabs] = useState<NegotiationTab[]>([]);
-  const [completedDeals, setCompletedDeals] = useState<CompletedDeal[]>([
-    {
-      id: '1',
-      title: '2019 Honda Civic',
-      category: 'cars',
-      platform: 'Facebook Marketplace',
-      originalPrice: 18000,
-      finalPrice: 15500,
-      savings: 2500,
-      savingsPercentage: 14,
-      completedAt: new Date('2024-01-15'),
-      dealClosed: true
-    },
-    {
-      id: '2',
-      title: 'MacBook Pro 13"',
-      category: 'electronics',
-      platform: 'Craigslist',
-      originalPrice: 1200,
-      finalPrice: 950,
-      savings: 250,
-      savingsPercentage: 21,
-      completedAt: new Date('2024-01-10'),
-      dealClosed: true
-    },
-    {
-      id: '3',
-      title: 'Vintage Dining Set',
-      category: 'furniture',
-      platform: 'Facebook Marketplace',
-      originalPrice: 800,
-      finalPrice: 550,
-      savings: 250,
-      savingsPercentage: 31,
-      completedAt: new Date('2024-01-05'),
-      dealClosed: true
-    }
-  ]);
-  const [showDealDialog, setShowDealDialog] = useState(false);
-  const [closingTabId, setClosingTabId] = useState<string>('');
-  const [dealClosed, setDealClosed] = useState(false);
-  const [finalPrice, setFinalPrice] = useState('');
+  const [listingTitle, setListingTitle] = useState('');
+  const [listingPrice, setListingPrice] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [extraNotes, setExtraNotes] = useState('');
+  const [generatedOffer, setGeneratedOffer] = useState('');
+  const [generatedMessage, setGeneratedMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('new');
   const { toast } = useToast();
 
-  const createNewNegotiation = () => {
-    const newTab: NegotiationTab = {
-      id: Date.now().toString(),
-      title: 'New Negotiation',
-      category: '',
-      platform: '',
-      originalPrice: 0,
-      status: 'active',
-      createdAt: new Date(),
-      messages: []
-    };
-    
-    setNegotiationTabs(prev => [...prev, newTab]);
-    setActiveMainTab('negotiate');
-    
-    toast({
-      title: "New Negotiation Started",
-      description: "A new negotiation tab has been created.",
-    });
-  };
-
-  const updateNegotiationTab = (tabId: string, updates: Partial<NegotiationTab>) => {
-    setNegotiationTabs(prev => 
-      prev.map(tab => 
-        tab.id === tabId ? { ...tab, ...updates } : tab
-      )
-    );
-  };
-
-  const closeNegotiationTab = (tabId: string) => {
-    const tab = negotiationTabs.find(t => t.id === tabId);
-    if (!tab) return;
-
-    setClosingTabId(tabId);
-    setShowDealDialog(true);
-  };
-
-  const handleDealCompletion = () => {
-    const tab = negotiationTabs.find(t => t.id === closingTabId);
-    if (!tab) return;
-
-    if (dealClosed && finalPrice) {
-      const finalPriceNum = parseFloat(finalPrice);
-      if (finalPriceNum && finalPriceNum < tab.originalPrice) {
-        const savings = tab.originalPrice - finalPriceNum;
-        const savingsPercentage = Math.round((savings / tab.originalPrice) * 100);
-        
-        const completedDeal: CompletedDeal = {
-          id: closingTabId,
-          title: tab.title,
-          category: tab.category,
-          platform: tab.platform,
-          originalPrice: tab.originalPrice,
-          finalPrice: finalPriceNum,
-          savings,
-          savingsPercentage,
-          completedAt: new Date(),
-          dealClosed: true
-        };
-        
-        setCompletedDeals(prev => [completedDeal, ...prev]);
-        
-        toast({
-          title: "Deal Completed! 🎉",
-          description: `You saved $${savings} (${savingsPercentage}% off)!`,
-        });
-      }
+  const handleGenerateOffer = async () => {
+    if (!listingTitle || !listingPrice || !platform) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    setIsLoading(true);
     
-    setNegotiationTabs(prev => prev.filter(t => t.id !== closingTabId));
-    setShowDealDialog(false);
-    setClosingTabId('');
-    setDealClosed(false);
-    setFinalPrice('');
+    try {
+      const price = parseFloat(listingPrice);
+      const calculatedOffer = calculateCounterOffer(price, platform);
+      const message = await generateNegotiationMessage(
+        listingTitle, 
+        price, 
+        calculatedOffer, 
+        platform, 
+        extraNotes
+      );
+      
+      setGeneratedOffer(calculatedOffer.toString());
+      setGeneratedMessage(message);
+      
+      toast({
+        title: "Offer Generated!",
+        description: "Your negotiation strategy is ready to use.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate offer. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const totalSavings = completedDeals.reduce((sum, deal) => sum + deal.savings, 0);
-  const totalDeals = completedDeals.length;
-  const averageSavings = totalDeals > 0 ? Math.round(totalSavings / totalDeals) : 0;
-
-  const tabsConfig = [
-    { value: 'negotiate', label: 'Negotiate', icon: MessageSquare, count: negotiationTabs.length, gradient: 'from-emerald-500 to-cyan-500' },
-    { value: 'reviews', label: 'Reviews', icon: Star, gradient: 'from-cyan-500 to-blue-500' },
-    { value: 'history', label: 'History', icon: History, count: totalDeals, gradient: 'from-blue-500 to-purple-500' },
-    { value: 'analytics', label: 'Analytics', icon: TrendingUp, gradient: 'from-purple-500 to-pink-500' }
+  const betterDeals = [
+    {
+      title: "MacBook Pro 13\" M2",
+      savings: "$90",
+      platform: "Facebook Marketplace"
+    },
+    {
+      title: "iPad Pro 12.9\"",
+      savings: "$50",
+      platform: "Craigslist"
+    },
+    {
+      title: "Galaxy Z Fold Used",
+      savings: "$130",
+      platform: "eBay"
+    }
   ];
 
   return (
-    <BackgroundLayout>
-      <AppHeader />
+    <main className="min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900 text-white p-6 font-sans">
+      <header className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">🧠 Lowbal</h1>
+          <p className="text-sm text-gray-300">AI-Powered Negotiation Assistant</p>
+        </div>
+        <Link to="/account">
+          <button className="bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 rounded-lg shadow-md text-white font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300">
+            Account
+          </button>
+        </Link>
+      </header>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <Button
-          onClick={createNewNegotiation}
-          className="w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:from-emerald-600 hover:via-cyan-600 hover:to-blue-600 shadow-2xl hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-110 border-0"
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-green-600 p-4 rounded-xl shadow-md">
+          <p className="text-sm text-white/80">Total Saved</p>
+          <h2 className="text-2xl font-bold">$3,000</h2>
+        </div>
+        <div className="bg-green-500 p-4 rounded-xl shadow-md">
+          <p className="text-sm text-white/80">Deals Closed</p>
+          <h2 className="text-2xl font-bold">3</h2>
+        </div>
+        <div className="bg-green-400 p-4 rounded-xl shadow-md">
+          <p className="text-sm text-white/80">Avg. Savings</p>
+          <h2 className="text-2xl font-bold">$1,000</h2>
+        </div>
+      </section>
+
+      <section className="mb-6 flex items-center gap-4 flex-wrap">
+        <button 
+          onClick={() => setActiveTab('new')}
+          className={`px-4 py-2 rounded-lg font-semibold shadow-sm transition-all duration-300 ${
+            activeTab === 'new' 
+              ? 'bg-white text-black' 
+              : 'bg-gray-800 text-white/70 hover:bg-gray-700'
+          }`}
         >
-          <Plus className="w-10 h-10 text-white" />
-        </Button>
-      </div>
+          📦 New Negotiation
+        </button>
+        <button 
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+            activeTab === 'history' 
+              ? 'bg-white text-black' 
+              : 'bg-gray-800 text-white/70 hover:bg-gray-700'
+          }`}
+        >
+          🔁 History
+        </button>
+        <button 
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+            activeTab === 'analytics' 
+              ? 'bg-white text-black' 
+              : 'bg-gray-800 text-white/70 hover:bg-gray-700'
+          }`}
+        >
+          📊 Analytics
+        </button>
+      </section>
 
-      <SavingsTracker 
-        totalSavings={totalSavings}
-        totalDeals={totalDeals}
-        averageSavings={averageSavings}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-black/20 backdrop-blur-xl shadow-2xl rounded-3xl p-3 h-24 border border-white/20">
-            {tabsConfig.map((tab) => (
-              <TabsTrigger 
-                key={tab.value}
-                value={tab.value} 
-                className={`text-lg font-bold h-18 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:${tab.gradient} data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white`}
-              >
-                <tab.icon className="w-6 h-6 mr-3" />
-                {tab.label} {tab.count !== undefined && `(${tab.count})`}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value="negotiate" className="space-y-8">
-            <NegotiationTabs
-              tabs={negotiationTabs}
-              onUpdateTab={updateNegotiationTab}
-              onCloseTab={closeNegotiationTab}
-              onCreateNew={createNewNegotiation}
+      {activeTab === 'new' && (
+        <section className="bg-white text-black p-6 rounded-xl shadow-xl grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left Panel - Listing Input */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">📝 Listing Details</h3>
+            <input 
+              className="w-full p-3 rounded-md border border-gray-300 text-black" 
+              placeholder="Listing Title"
+              value={listingTitle}
+              onChange={(e) => setListingTitle(e.target.value)}
             />
-          </TabsContent>
+            <input 
+              type="number" 
+              className="w-full p-3 rounded-md border border-gray-300 text-black" 
+              placeholder="Listing Price ($)"
+              value={listingPrice}
+              onChange={(e) => setListingPrice(e.target.value)}
+            />
+            <select 
+              className="w-full p-3 rounded-md border border-gray-300 text-black"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+            >
+              <option value="">Select Platform</option>
+              <option value="Facebook Marketplace">Facebook Marketplace</option>
+              <option value="Craigslist">Craigslist</option>
+              <option value="Zillow">Zillow</option>
+              <option value="eBay">eBay</option>
+              <option value="OfferUp">OfferUp</option>
+            </select>
+            <textarea 
+              className="w-full p-3 rounded-md border border-gray-300 text-black" 
+              rows={3} 
+              placeholder="Extra Notes or Seller Info (Optional)"
+              value={extraNotes}
+              onChange={(e) => setExtraNotes(e.target.value)}
+            />
+            <button 
+              onClick={handleGenerateOffer}
+              disabled={isLoading}
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:scale-105 transition-all text-lg font-bold shadow-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <div className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                '🚀 Generate Offer & Message'
+              )}
+            </button>
+          </div>
 
-          <TabsContent value="reviews">
-            <ReviewsTab />
-          </TabsContent>
-
-          <TabsContent value="history">
-            <OrderHistory deals={completedDeals} />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <div className="grid lg:grid-cols-2 gap-8">
-              <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-                <h3 className="text-3xl font-black text-white mb-8">Savings Analytics</h3>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-6 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 backdrop-blur-xl rounded-2xl border border-emerald-500/30">
-                    <span className="text-emerald-300 font-bold text-lg">Total Saved</span>
-                    <span className="text-3xl font-black text-emerald-400">${totalSavings.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-6 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-xl rounded-2xl border border-cyan-500/30">
-                    <span className="text-cyan-300 font-bold text-lg">Deals Completed</span>
-                    <span className="text-3xl font-black text-cyan-400">{totalDeals}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl border border-blue-500/30">
-                    <span className="text-blue-300 font-bold text-lg">Average Savings</span>
-                    <span className="text-3xl font-black text-blue-400">${averageSavings}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-                <h3 className="text-3xl font-black text-white mb-8">Category Breakdown</h3>
+          {/* Center Panel - AI Strategy */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">🤖 AI-Generated Strategy</h3>
+            <div className="border border-dashed border-gray-300 rounded-lg p-6 h-[300px] overflow-y-auto">
+              {generatedOffer && generatedMessage ? (
                 <div className="space-y-4">
-                  {['cars', 'electronics', 'furniture'].map(category => {
-                    const categoryDeals = completedDeals.filter(deal => deal.category === category);
-                    const categorySavings = categoryDeals.reduce((sum, deal) => sum + deal.savings, 0);
-                    return (
-                      <div key={category} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
-                        <span className="capitalize font-bold text-white text-lg">{category}</span>
-                        <div className="text-right">
-                          <div className="font-black text-emerald-400 text-xl">${categorySavings}</div>
-                          <div className="text-sm text-gray-300 font-medium">{categoryDeals.length} deals</div>
-                        </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-bold text-green-800 mb-2">Suggested Offer:</h4>
+                    <div className="text-2xl font-bold text-green-600">${generatedOffer}</div>
+                    {listingPrice && (
+                      <div className="text-sm text-green-700 mt-1">
+                        Save ${(parseFloat(listingPrice) - parseFloat(generatedOffer)).toLocaleString()} 
+                        ({Math.round(((parseFloat(listingPrice) - parseFloat(generatedOffer)) / parseFloat(listingPrice)) * 100)}% off)
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-bold text-blue-800 mb-2">Negotiation Message:</h4>
+                    <p className="text-sm text-blue-700 leading-relaxed">{generatedMessage}</p>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedMessage);
+                        toast({
+                          title: "Copied!",
+                          description: "Message copied to clipboard.",
+                        });
+                      }}
+                      className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Copy Message
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Deal Completion Dialog */}
-      <Dialog open={showDealDialog} onOpenChange={setShowDealDialog}>
-        <DialogContent className="bg-gradient-to-br from-white/95 to-white/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-gray-900 mb-2">
-              Deal Completion
-            </DialogTitle>
-            <DialogDescription className="text-gray-700 font-medium">
-              Did you successfully close this deal?
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 pt-4">
-            <div className="flex gap-4">
-              <Button
-                onClick={() => setDealClosed(true)}
-                className={`flex-1 h-12 rounded-xl font-bold transition-all duration-300 ${
-                  dealClosed 
-                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Yes, Deal Closed! 🎉
-              </Button>
-              <Button
-                onClick={() => setDealClosed(false)}
-                className={`flex-1 h-12 rounded-xl font-bold transition-all duration-300 ${
-                  !dealClosed 
-                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                No, Just Closing
-              </Button>
-            </div>
-
-            {dealClosed && (
-              <div className="space-y-4 p-4 bg-green-50 rounded-2xl border border-green-200">
-                <Label htmlFor="finalPrice" className="text-lg font-bold text-green-800">
-                  What was the final price?
-                </Label>
-                <Input
-                  id="finalPrice"
-                  type="number"
-                  placeholder="Enter final price"
-                  value={finalPrice}
-                  onChange={(e) => setFinalPrice(e.target.value)}
-                  className="h-12 text-lg border-2 border-green-300 focus:border-green-500 bg-white text-gray-900 font-bold"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-4 pt-4">
-              <Button
-                onClick={() => setShowDealDialog(false)}
-                variant="outline"
-                className="flex-1 h-12 rounded-xl font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDealCompletion}
-                className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-all duration-300"
-              >
-                Confirm
-              </Button>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500 text-sm text-center">
+                  Select a category & listing to see your personalized negotiation strategy.
+                </div>
+              )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </BackgroundLayout>
+
+          {/* Right Panel - Better Deals */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">💡 Better Deals Found</h3>
+            <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2">
+              {betterDeals.map((deal, index) => (
+                <div key={index} className="bg-gray-100 rounded-lg p-3 shadow-sm hover:bg-gray-200 transition-colors">
+                  <p className="font-semibold text-gray-900">{deal.title}</p>
+                  <p className="text-sm text-green-600 font-medium">Save {deal.savings} • {deal.platform}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'history' && (
+        <section className="bg-white text-black p-6 rounded-xl shadow-xl">
+          <h3 className="text-2xl font-bold mb-6">🔁 Negotiation History</h3>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-bold">2019 Honda Civic</h4>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-sm font-medium">Completed</span>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Facebook Marketplace • Completed Jan 15, 2024</p>
+              <div className="flex gap-4 text-sm">
+                <span>Original: <span className="line-through">$18,000</span></span>
+                <span>Final: <span className="text-green-600 font-bold">$15,500</span></span>
+                <span className="text-green-600 font-bold">Saved $2,500 (14%)</span>
+              </div>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-bold">MacBook Pro 13"</h4>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-sm font-medium">Completed</span>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Craigslist • Completed Jan 10, 2024</p>
+              <div className="flex gap-4 text-sm">
+                <span>Original: <span className="line-through">$1,200</span></span>
+                <span>Final: <span className="text-green-600 font-bold">$950</span></span>
+                <span className="text-green-600 font-bold">Saved $250 (21%)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'analytics' && (
+        <section className="bg-white text-black p-6 rounded-xl shadow-xl">
+          <h3 className="text-2xl font-bold mb-6">📊 Analytics Dashboard</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Savings by Category</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium">🚗 Cars</span>
+                  <span className="font-bold text-green-600">$2,500</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium">💻 Electronics</span>
+                  <span className="font-bold text-green-600">$250</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium">🪑 Furniture</span>
+                  <span className="font-bold text-green-600">$250</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">Success Metrics</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium">Success Rate</span>
+                  <span className="font-bold text-blue-600">78%</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium">Avg. Response Time</span>
+                  <span className="font-bold text-blue-600">2.3 hours</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium">Best Deal</span>
+                  <span className="font-bold text-blue-600">31% off</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+    </main>
   );
 };
 
