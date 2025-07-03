@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import AppPage from "./pages/App";
+import Account from "./pages/Account";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -25,6 +26,11 @@ const App = () => (
           <Route path="/app" element={
             <ProtectedRoute>
               <AppPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/account" element={
+            <ProtectedRoute>
+              <Account />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />

@@ -30,10 +30,12 @@ const AppHeader = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 font-medium">
-              <User className="w-5 h-5 mr-2" />
-              Account
-            </Button>
+            <Link to="/account">
+              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-xl shadow-xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105">
+                <User className="w-5 h-5 mr-2" />
+                Account
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import NegotiationResults from './NegotiationResults';
 import AIConversationChat from './AIConversationChat';
 import ListingUrlParser from './ListingUrlParser';
 import ConversationImageAnalyzer from './ConversationImageAnalyzer';
+import BetterDeals from './BetterDeals';
 import { calculateCounterOffer, generateNegotiationMessage } from '../utils/negotiationUtils';
 import { useToast } from "@/hooks/use-toast";
 
@@ -220,33 +221,33 @@ const NegotiationTabs: React.FC<NegotiationTabsProps> = ({
                       </div>
                     </div>
 
-                    {/* Sub-tabs for different input methods */}
+                    {/* Enhanced Sub-tabs */}
                     <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-                      <TabsList className="grid w-full grid-cols-4 mb-10 bg-black/20 backdrop-blur-xl shadow-2xl rounded-3xl p-3 h-20 border border-white/20">
+                      <TabsList className="grid w-full grid-cols-4 mb-10 bg-black/30 backdrop-blur-xl shadow-2xl rounded-3xl p-4 h-20 border border-white/20">
                         <TabsTrigger 
                           value="form" 
-                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
+                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-white hover:text-white hover:bg-white/10"
                         >
                           <Sparkles className="w-5 h-5 mr-3" />
                           Manual Entry
                         </TabsTrigger>
                         <TabsTrigger 
                           value="url" 
-                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
+                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-white hover:text-white hover:bg-white/10"
                         >
                           <Link className="w-5 h-5 mr-3" />
                           URL Parser
                         </TabsTrigger>
                         <TabsTrigger 
                           value="chat" 
-                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
+                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-white hover:text-white hover:bg-white/10"
                         >
                           <Bot className="w-5 h-5 mr-3" />
                           AI Chat
                         </TabsTrigger>
                         <TabsTrigger 
                           value="image" 
-                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-gray-300 hover:text-white"
+                          className="text-lg font-bold h-14 rounded-2xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 text-white hover:text-white hover:bg-white/10"
                         >
                           <Image className="w-5 h-5 mr-3" />
                           Image Analyzer
@@ -254,7 +255,7 @@ const NegotiationTabs: React.FC<NegotiationTabsProps> = ({
                       </TabsList>
 
                       <TabsContent value="form" className="space-y-10">
-                        <div className="grid lg:grid-cols-2 gap-10">
+                        <div className="grid lg:grid-cols-3 gap-10">
                           <ListingForm
                             listingTitle={tab.title}
                             setListingTitle={(title) => onUpdateTab(tab.id, { title })}
@@ -282,6 +283,12 @@ const NegotiationTabs: React.FC<NegotiationTabsProps> = ({
                             }}
                             selectedCategory={tab.category}
                           />
+
+                          <BetterDeals
+                            searchQuery={tab.title}
+                            category={tab.category}
+                            currentPrice={tab.originalPrice}
+                          />
                         </div>
                       </TabsContent>
 
@@ -292,7 +299,7 @@ const NegotiationTabs: React.FC<NegotiationTabsProps> = ({
                           />
                           
                           {(tab.title || tab.originalPrice > 0) && (
-                            <div className="mt-10 grid lg:grid-cols-2 gap-10">
+                            <div className="mt-10 grid lg:grid-cols-3 gap-10">
                               <ListingForm
                                 listingTitle={tab.title}
                                 setListingTitle={(title) => onUpdateTab(tab.id, { title })}
@@ -319,6 +326,12 @@ const NegotiationTabs: React.FC<NegotiationTabsProps> = ({
                                   });
                                 }}
                                 selectedCategory={tab.category}
+                              />
+
+                              <BetterDeals
+                                searchQuery={tab.title}
+                                category={tab.category}
+                                currentPrice={tab.originalPrice}
                               />
                             </div>
                           )}
