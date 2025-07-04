@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Plus, MessageSquare, Link as LinkIcon, Image, Bot, Sparkles, Star, Home, Car, Bike, Smartphone, Laptop, Sofa, CheckCircle, Copy, Send, Upload, Eye, TrendingDown, ExternalLink, MapPin, Clock } from "lucide-react";
+import { X, Plus, MessageSquare, Image, Bot, Sparkles, Star, Home, Car, Bike, Smartphone, Laptop, Sofa, CheckCircle, Copy, Send, Upload, Eye, TrendingDown, ExternalLink, MapPin, Clock, Mic, MicOff, Camera, Paperclip } from "lucide-react";
 import { calculateCounterOffer, generateNegotiationMessage } from '../utils/negotiationUtils';
 
 export interface NegotiationTab {
@@ -27,6 +27,9 @@ export interface NegotiationTab {
     type: 'user' | 'ai' | 'seller';
     content: string;
     timestamp: Date;
+    isVoice?: boolean;
+    isImage?: boolean;
+    imageUrl?: string;
   }>;
   tone?: string;
   budget?: number;
@@ -55,7 +58,7 @@ const categories = [
 ];
 
 const AppPage = () => {
-  const [activeTab, setActiveTab] = useState('negotiate');
+  const [activeTab, setActiveTab] = useState('new');
   const [activeSubTab, setActiveSubTab] = useState('form');
   const [currentNegotiationId, setCurrentNegotiationId] = useState<string | null>(null);
   const [negotiationTabs, setNegotiationTabs] = useState<NegotiationTab[]>([]);
@@ -86,7 +89,7 @@ const AppPage = () => {
     }
   ]);
 
-  // Current negotiation states
+  // Form states
   const [selectedCategory, setSelectedCategory] = useState('');
   const [listingTitle, setListingTitle] = useState('');
   const [listingPrice, setListingPrice] = useState('');
@@ -98,20 +101,31 @@ const AppPage = () => {
   const [generatedMessage, setGeneratedMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // URL Parser states
-  const [url, setUrl] = useState('');
-  const [isParsingUrl, setIsParsingUrl] = useState(false);
-  const [parsedData, setParsedData] = useState<any>(null);
-
   // AI Chat states
-  const [sellerMessage, setSellerMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'ai', content: string, timestamp: Date}>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: string, 
+    type: 'user' | 'ai', 
+    content: string, 
+    timestamp: Date,
+    isVoice?: boolean,
+    isImage?: boolean,
+    imageUrl?: string
+  }>>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   // Image Analyzer states
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisMessages, setAnalysisMessages] = useState<Array<{
+    id: string, 
+    type: 'user' | 'ai', 
+    content: string, 
+    timestamp: Date
+  }>>([]);
+  const [analysisInput, setAnalysisInput] = useState('');
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
   // Dialog states
   const [showDealDialog, setShowDealDialog] = useState(false);
@@ -119,55 +133,81 @@ const AppPage = () => {
   const [dealClosed, setDealClosed] = useState(false);
   const [finalPrice, setFinalPrice] = useState('');
 
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
 
-  // Auto-save current negotiation to active negotiations
-  const saveCurrentNegotiation = () => {
-    if (!selectedCategory) return;
+  const getCurrentNegotiation = () => {
+    return negotiationTabs.find(tab => tab.id === currentNegotiationId);
+  };
 
-    const negotiationData = {
-      id: currentNegotiationId || Date.now().toString(),
-      title: listingTitle || 'New Negotiation',
-      category: selectedCategory,
-      platform: platform,
-      originalPrice: parseFloat(listingPrice) || 0,
-      currentOffer: parseFloat(generatedOffer) || undefined,
-      status: 'active' as const,
+  const updateCurrentNegotiation = (updates: Partial<NegotiationTab>) => {
+    if (!currentNegotiationId) return;
+    
+    setNegotiationTabs(prev => prev.map(tab => 
+      tab.id === currentNegotiationId ? { ...tab, ...updates } : tab
+    ));
+  };
+
+  const startNewNegotiation = () => {
+    const newTab: NegotiationTab = {
+      id: Date.now().toString(),
+      title: '',
+      category: '',
+      platform: '',
+      originalPrice: 0,
+      status: 'active',
       createdAt: new Date(),
-      messages: chatMessages,
-      tone: selectedTone,
-      budget: parseFloat(budget) || undefined
+      messages: []
     };
-
-    setNegotiationTabs(prev => {
-      const existing = prev.find(tab => tab.id === negotiationData.id);
-      if (existing) {
-        return prev.map(tab => tab.id === negotiationData.id ? negotiationData : tab);
-      } else {
-        setCurrentNegotiationId(negotiationData.id);
-        return [...prev, negotiationData];
-      }
+    
+    setNegotiationTabs(prev => [...prev, newTab]);
+    setCurrentNegotiationId(newTab.id);
+    
+    // Reset form
+    setSelectedCategory('');
+    setListingTitle('');
+    setListingPrice('');
+    setPlatform('');
+    setExtraNotes('');
+    setSelectedTone('');
+    setBudget('');
+    setGeneratedOffer('');
+    setGeneratedMessage('');
+    setChatMessages([]);
+    
+    toast({
+      title: "New Negotiation Started",
+      description: "You can now work on multiple negotiations simultaneously.",
     });
   };
 
-  // Auto-save whenever important data changes
-  React.useEffect(() => {
-    if (selectedCategory || listingTitle || listingPrice || platform) {
-      saveCurrentNegotiation();
-    }
-  }, [selectedCategory, listingTitle, listingPrice, platform, generatedOffer, chatMessages, selectedTone, budget]);
+  const selectNegotiation = (tabId: string) => {
+    const tab = negotiationTabs.find(t => t.id === tabId);
+    if (!tab) return;
 
-  const openActiveNegotiation = (negotiation: NegotiationTab) => {
-    setCurrentNegotiationId(negotiation.id);
-    setSelectedCategory(negotiation.category);
-    setListingTitle(negotiation.title);
-    setListingPrice(negotiation.originalPrice.toString());
-    setPlatform(negotiation.platform);
-    setGeneratedOffer(negotiation.currentOffer?.toString() || '');
-    setChatMessages(negotiation.messages);
-    setSelectedTone(negotiation.tone || '');
-    setBudget(negotiation.budget?.toString() || '');
-    setActiveTab('negotiate');
+    setCurrentNegotiationId(tabId);
+    setActiveTab('new');
+    
+    // Load negotiation data
+    setSelectedCategory(tab.category);
+    setListingTitle(tab.title);
+    setListingPrice(tab.originalPrice.toString());
+    setPlatform(tab.platform);
+    setSelectedTone(tab.tone || '');
+    setBudget(tab.budget?.toString() || '');
+    setChatMessages(tab.messages || []);
+    
+    if (tab.currentOffer) {
+      setGeneratedOffer(tab.currentOffer.toString());
+    }
+    
+    toast({
+      title: "Negotiation Loaded",
+      description: `Switched to: ${tab.title || 'Untitled negotiation'}`,
+    });
   };
 
   const closeNegotiationTab = (tabId: string) => {
@@ -201,25 +241,16 @@ const AppPage = () => {
         setCompletedDeals(prev => [completedDeal, ...prev]);
         
         toast({
-          title: "Deal Completed Successfully",
-          description: `You saved $${savings} (${savingsPercentage}% off)`,
+          title: "Deal Completed! 🎉",
+          description: `You saved $${savings} (${savingsPercentage}% off)!`,
         });
       }
     }
     
     setNegotiationTabs(prev => prev.filter(t => t.id !== closingTabId));
     
-    // Clear current negotiation if it's the one being closed
     if (currentNegotiationId === closingTabId) {
       setCurrentNegotiationId(null);
-      setSelectedCategory('');
-      setListingTitle('');
-      setListingPrice('');
-      setPlatform('');
-      setGeneratedOffer('');
-      setChatMessages([]);
-      setSelectedTone('');
-      setBudget('');
     }
     
     setShowDealDialog(false);
@@ -229,22 +260,22 @@ const AppPage = () => {
   };
 
   const handleGenerateOffer = async () => {
-    if (!listingTitle || !listingPrice || !platform || !selectedCategory || !selectedTone || !budget) {
+    if (!listingTitle || !listingPrice || !platform || !selectedCategory || !selectedTone) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields including tone and budget.",
+        description: "Please fill in all required fields including tone selection.",
         variant: "destructive"
       });
       return;
     }
 
-    const price = parseFloat(listingPrice);
-    const maxBudget = parseFloat(budget);
-
-    if (maxBudget >= price) {
+    const budgetNum = budget ? parseFloat(budget) : undefined;
+    const priceNum = parseFloat(listingPrice);
+    
+    if (budgetNum && priceNum > budgetNum) {
       toast({
-        title: "Invalid Budget",
-        description: "Your budget must be lower than the listing price.",
+        title: "Budget Exceeded",
+        description: "The listing price exceeds your budget. Consider looking for alternatives.",
         variant: "destructive"
       });
       return;
@@ -253,39 +284,41 @@ const AppPage = () => {
     setIsLoading(true);
     
     try {
-      const calculatedOffer = Math.min(
-        calculateCounterOffer(price, platform, selectedCategory),
-        maxBudget
-      );
+      const calculatedOffer = calculateCounterOffer(priceNum, platform, selectedCategory);
+      const finalOffer = budgetNum ? Math.min(calculatedOffer, budgetNum) : calculatedOffer;
       
       const message = await generateNegotiationMessage(
         listingTitle, 
-        price, 
-        calculatedOffer, 
+        priceNum, 
+        finalOffer, 
         platform, 
         extraNotes,
         selectedCategory
       );
       
-      setGeneratedOffer(calculatedOffer.toString());
+      setGeneratedOffer(finalOffer.toString());
       setGeneratedMessage(message);
       
-      // Add to chat
-      const aiMessage = {
-        id: Date.now().toString(),
-        type: 'ai' as const,
-        content: message,
-        timestamp: new Date()
-      };
-      setChatMessages(prev => [...prev, aiMessage]);
+      // Update current negotiation
+      if (currentNegotiationId) {
+        updateCurrentNegotiation({
+          title: listingTitle,
+          category: selectedCategory,
+          platform: platform,
+          originalPrice: priceNum,
+          currentOffer: finalOffer,
+          tone: selectedTone,
+          budget: budgetNum
+        });
+      }
       
       toast({
-        title: "Offer Generated Successfully",
-        description: "Your negotiation strategy is ready.",
+        title: "Offer Generated!",
+        description: "Your negotiation strategy is ready to use.",
       });
     } catch (error) {
       toast({
-        title: "Generation Failed",
+        title: "Error",
         description: "Failed to generate offer. Please try again.",
         variant: "destructive"
       });
@@ -294,92 +327,106 @@ const AppPage = () => {
     }
   };
 
-  const handleParseUrl = async () => {
-    if (!url) {
-      toast({
-        title: "URL Required",
-        description: "Please enter a listing URL to parse.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsParsingUrl(true);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockData = {
-        title: "MacBook Pro 13\" M2 - Like New",
-        price: "1200",
-        platform: "Facebook Marketplace",
-        description: "Barely used, original packaging included"
-      };
-      
-      setParsedData(mockData);
-      
-      toast({
-        title: "URL Parsed Successfully",
-        description: "Listing information has been extracted.",
-      });
-      
-      setUrl('');
-    } catch (error) {
-      toast({
-        title: "Parsing Failed",
-        description: "Unable to parse the listing URL.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsParsingUrl(false);
-    }
-  };
-
   const handleSendChatMessage = async () => {
-    if (!sellerMessage.trim()) {
-      toast({
-        title: "Message Required",
-        description: "Please enter a message.",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!chatInput.trim()) return;
 
     const userMessage = {
       id: Date.now().toString(),
       type: 'user' as const,
-      content: sellerMessage,
+      content: chatInput,
       timestamp: new Date()
     };
 
-    setChatMessages(prev => [...prev, userMessage]);
-    setSellerMessage('');
+    const newMessages = [...chatMessages, userMessage];
+    setChatMessages(newMessages);
+    setChatInput('');
     setIsChatLoading(true);
 
+    // Update current negotiation
+    if (currentNegotiationId) {
+      updateCurrentNegotiation({ messages: newMessages });
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const aiResponse = {
         id: (Date.now() + 1).toString(),
         type: 'ai' as const,
-        content: "Thank you for your interest! I understand you're looking for the right deal. Based on current market conditions and the item's condition, would you consider $850? I'm ready to complete the purchase today if we can agree on this price.",
+        content: "I understand your concern about the negotiation. Based on your tone preference and the market data, I'd suggest emphasizing the quick transaction benefit. Would you like me to adjust the message to be more assertive about your timeline?",
         timestamp: new Date()
       };
 
-      setChatMessages(prev => [...prev, aiResponse]);
+      const updatedMessages = [...newMessages, aiResponse];
+      setChatMessages(updatedMessages);
+      
+      if (currentNegotiationId) {
+        updateCurrentNegotiation({ messages: updatedMessages });
+      }
       
       toast({
-        title: "AI Response Generated",
-        description: "Your personalized response is ready.",
+        title: "AI Response Generated!",
+        description: "Continue the conversation for more insights.",
       });
     } catch (error) {
       toast({
-        title: "Generation Failed",
+        title: "Error",
         description: "Failed to generate AI response.",
         variant: "destructive"
       });
     } finally {
       setIsChatLoading(false);
+    }
+  };
+
+  const handleVoiceRecord = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      // Simulate voice message
+      const voiceMessage = {
+        id: Date.now().toString(),
+        type: 'user' as const,
+        content: "Voice message: How should I respond if they counter with a higher price?",
+        timestamp: new Date(),
+        isVoice: true
+      };
+      setChatMessages(prev => [...prev, voiceMessage]);
+      
+      toast({
+        title: "Voice Message Sent",
+        description: "Your voice message has been processed.",
+      });
+    } else {
+      setIsRecording(true);
+      toast({
+        title: "Recording Started",
+        description: "Speak your message now...",
+      });
+    }
+  };
+
+  const handleChatImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        const imageMessage = {
+          id: Date.now().toString(),
+          type: 'user' as const,
+          content: "Shared an image",
+          timestamp: new Date(),
+          isImage: true,
+          imageUrl: imageUrl
+        };
+        setChatMessages(prev => [...prev, imageMessage]);
+        
+        toast({
+          title: "Image Shared",
+          description: "Your image has been added to the conversation.",
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -389,6 +436,10 @@ const AppPage = () => {
       const reader = new FileReader();
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string);
+        toast({
+          title: "Image Uploaded",
+          description: "Ready to analyze the conversation.",
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -409,16 +460,18 @@ const AppPage = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      setAnalysisResult({
-        sentiment: 'positive',
-        priceFlexibility: 'high',
-        urgency: 'medium',
-        suggestedResponse: 'Based on the conversation analysis, the seller seems motivated to sell quickly. I recommend offering 15-20% below asking price.'
-      });
+      const analysisResult = {
+        id: Date.now().toString(),
+        type: 'ai' as const,
+        content: `Analysis Complete! I can see this is a ${selectedCategory} negotiation. The conversation shows the seller is motivated and mentions "need to sell quickly." Key insights: 1) Price flexibility appears high, 2) Seller seems genuine, 3) Good opportunity for 15-20% discount. What specific aspect would you like me to elaborate on?`,
+        timestamp: new Date()
+      };
+      
+      setAnalysisMessages([analysisResult]);
       
       toast({
-        title: "Analysis Complete",
-        description: "Conversation analyzed with AI insights.",
+        title: "Analysis Complete!",
+        description: "You can now chat with AI about the results.",
       });
     } catch (error) {
       toast({
@@ -431,726 +484,726 @@ const AppPage = () => {
     }
   };
 
-  const betterDeals = [
-    { title: "MacBook Pro 13\" M2", savings: "$90", platform: "Facebook Marketplace", location: "San Francisco, CA", timeLeft: "2h left" },
-    { title: "iPad Pro 12.9\"", savings: "$50", platform: "Craigslist", location: "Los Angeles, CA", timeLeft: "1 day left" },
-    { title: "Galaxy Z Fold Used", savings: "$130", platform: "eBay", location: "New York, NY", timeLeft: "3h left" }
-  ];
+  const handleAnalysisChat = async () => {
+    if (!analysisInput.trim()) return;
+
+    const userMessage = {
+      id: Date.now().toString(),
+      type: 'user' as const,
+      content: analysisInput,
+      timestamp: new Date()
+    };
+
+    const newMessages = [...analysisMessages, userMessage];
+    setAnalysisMessages(newMessages);
+    setAnalysisInput('');
+    setIsAnalysisLoading(true);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const aiResponse = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai' as const,
+        content: "Based on the conversation analysis, I'd recommend starting with a 18% discount from their asking price. The seller's language suggests urgency, which gives you negotiating power. Would you like me to craft a specific message for this situation?",
+        timestamp: new Date()
+      };
+
+      setAnalysisMessages([...newMessages, aiResponse]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate response.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalysisLoading(false);
+    }
+  };
 
   const totalSavings = completedDeals.reduce((sum, deal) => sum + deal.savings, 0);
   const totalDeals = completedDeals.length;
   const averageSavings = totalDeals > 0 ? Math.round(totalSavings / totalDeals) : 1000;
 
-  const toneOptions = [
-    { value: 'professional', label: 'Professional' },
-    { value: 'friendly', label: 'Friendly' },
-    { value: 'casual', label: 'Casual' },
-    { value: 'assertive', label: 'Assertive' },
-    { value: 'polite', label: 'Polite' }
-  ];
+  const currentNegotiation = getCurrentNegotiation();
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 text-white">
-      <header className="bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Lowbal</h1>
-              <p className="text-sm text-gray-300 font-medium">AI-Powered Negotiation Assistant</p>
-            </div>
-            <Link to="/account">
-              <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-6 py-3 rounded-lg shadow-lg text-white font-semibold transition-all duration-300">
-                Account
-              </button>
-            </Link>
-          </div>
+    <main className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 text-white p-8">
+      <header className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-4xl font-bold text-white">Lowbal</h1>
+          <p className="text-lg text-slate-300 font-medium">AI-Powered Negotiation Assistant</p>
         </div>
+        <Link to="/account">
+          <button className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 rounded-xl shadow-lg text-white font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300">
+            Account
+          </button>
+        </Link>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Section */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-6 rounded-xl shadow-lg">
-            <p className="text-sm text-emerald-100 font-medium">Total Saved</p>
-            <h2 className="text-3xl font-bold text-white">${totalSavings.toLocaleString()}</h2>
-          </div>
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-xl shadow-lg">
-            <p className="text-sm text-blue-100 font-medium">Deals Closed</p>
-            <h2 className="text-3xl font-bold text-white">{totalDeals}</h2>
-          </div>
-          <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 rounded-xl shadow-lg">
-            <p className="text-sm text-purple-100 font-medium">Avg. Savings</p>
-            <h2 className="text-3xl font-bold text-white">${averageSavings}</h2>
-          </div>
-        </section>
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-6 rounded-2xl shadow-xl">
+          <p className="text-emerald-100 font-medium">Total Saved</p>
+          <h2 className="text-3xl font-bold text-white">${totalSavings.toLocaleString()}</h2>
+        </div>
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl shadow-xl">
+          <p className="text-blue-100 font-medium">Deals Closed</p>
+          <h2 className="text-3xl font-bold text-white">{totalDeals}</h2>
+        </div>
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 rounded-2xl shadow-xl">
+          <p className="text-purple-100 font-medium">Avg. Savings</p>
+          <h2 className="text-3xl font-bold text-white">${averageSavings}</h2>
+        </div>
+      </section>
 
-        {/* Navigation Tabs */}
-        <section className="mb-8">
-          <div className="flex items-center gap-4 flex-wrap">
-            <button 
-              onClick={() => setActiveTab('negotiate')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                activeTab === 'negotiate' 
-                  ? 'bg-white text-gray-900 shadow-lg' 
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-              }`}
-            >
-              New Negotiation
-            </button>
-            <button 
-              onClick={() => setActiveTab('active')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                activeTab === 'active' 
-                  ? 'bg-white text-gray-900 shadow-lg' 
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-              }`}
-            >
-              Active Negotiations ({negotiationTabs.length})
-            </button>
-            <button 
-              onClick={() => setActiveTab('history')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                activeTab === 'history' 
-                  ? 'bg-white text-gray-900 shadow-lg' 
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-              }`}
-            >
-              History
-            </button>
-            <button 
-              onClick={() => setActiveTab('analytics')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                activeTab === 'analytics' 
-                  ? 'bg-white text-gray-900 shadow-lg' 
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-              }`}
-            >
-              Analytics
-            </button>
-          </div>
-        </section>
+      <section className="mb-8 flex items-center gap-6 flex-wrap">
+        <button 
+          onClick={() => setActiveTab('new')}
+          className={`px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 ${
+            activeTab === 'new' 
+              ? 'bg-white text-slate-900' 
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          New Negotiation
+        </button>
+        <button 
+          onClick={() => setActiveTab('negotiate')}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+            activeTab === 'negotiate' 
+              ? 'bg-white text-slate-900' 
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          Active Negotiations ({negotiationTabs.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab('history')}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+            activeTab === 'history' 
+              ? 'bg-white text-slate-900' 
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          History
+        </button>
+        <button 
+          onClick={() => setActiveTab('analytics')}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+            activeTab === 'analytics' 
+              ? 'bg-white text-slate-900' 
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          Analytics
+        </button>
+        <button 
+          onClick={startNewNegotiation}
+          className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-cyan-700 transition-all duration-300 shadow-lg"
+        >
+          <Plus className="w-5 h-5 mr-2 inline" />
+          Start New
+        </button>
+      </section>
 
-        {/* Main Content */}
-        {activeTab === 'negotiate' && (
-          <section className="bg-white text-gray-900 rounded-xl shadow-xl">
-            {!selectedCategory ? (
-              <div className="p-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Choose Your Category</h3>
-                  <p className="text-gray-600">Select the type of item you're negotiating for</p>
+      {activeTab === 'new' && (
+        <section className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl">
+          {currentNegotiation && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-blue-900">Working on: {currentNegotiation.title || 'Untitled Negotiation'}</h4>
+                  <p className="text-blue-700">Category: {currentNegotiation.category || 'Not selected'}</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {categories.map((category) => {
-                    const Icon = category.icon;
-                    return (
-                      <Card
-                        key={category.id}
-                        className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 bg-white border border-gray-200 hover:border-gray-300"
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        <CardContent className="p-6 text-center">
-                          <div className={`w-12 h-12 bg-gradient-to-br ${category.color} rounded-xl flex items-center justify-center mx-auto mb-3`}>
-                            <Icon className="w-6 h-6 text-white" />
-                          </div>
-                          <h4 className="font-bold text-gray-900 mb-1">{category.name}</h4>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                <Badge className="bg-blue-600 text-white">Active</Badge>
               </div>
-            ) : (
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <Badge className="bg-blue-100 text-blue-700 font-semibold px-3 py-1">
-                      Category: {categories.find(c => c.id === selectedCategory)?.name}
-                    </Badge>
-                  </div>
-                  <Button
-                    onClick={() => setSelectedCategory('')}
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-600 border-gray-300"
-                  >
-                    Change Category
-                  </Button>
+            </div>
+          )}
+
+          {!selectedCategory ? (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h3 className="text-3xl font-bold text-slate-900 mb-4">Choose Your Category</h3>
+                <p className="text-slate-600 text-lg">Select the type of item you're negotiating for</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                {categories.map((category) => {
+                  const Icon = category.icon;
+                  return (
+                    <Card
+                      key={category.id}
+                      className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white border-2 border-slate-200 hover:border-slate-300"
+                      onClick={() => setSelectedCategory(category.id)}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                          <Icon className="w-8 h-8 text-white" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 text-lg">{category.name}</h4>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Badge className="bg-blue-600 text-white font-bold text-lg px-4 py-2">
+                    Category: {categories.find(c => c.id === selectedCategory)?.name}
+                  </Badge>
                 </div>
+                <Button
+                  onClick={() => setSelectedCategory('')}
+                  variant="outline"
+                  className="text-slate-600 border-slate-300"
+                >
+                  Change Category
+                </Button>
+              </div>
 
-                <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-100 rounded-xl p-1 h-14">
-                    <TabsTrigger value="form" className="text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-700">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Manual Entry
-                    </TabsTrigger>
-                    <TabsTrigger value="url" className="text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-700">
-                      <LinkIcon className="w-4 h-4 mr-2" />
-                      URL Parser
-                    </TabsTrigger>
-                    <TabsTrigger value="chat" className="text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-700">
-                      <Bot className="w-4 h-4 mr-2" />
-                      AI Chat
-                    </TabsTrigger>
-                    <TabsTrigger value="image" className="text-sm font-semibold rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-700">
-                      <Image className="w-4 h-4 mr-2" />
-                      Image Analyzer
-                    </TabsTrigger>
-                  </TabsList>
+              <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-100 rounded-2xl p-2 h-16">
+                  <TabsTrigger value="form" className="text-lg font-bold rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg">
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Manual Entry
+                  </TabsTrigger>
+                  <TabsTrigger value="chat" className="text-lg font-bold rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg">
+                    <Bot className="w-5 h-5 mr-2" />
+                    AI Strategy Chat
+                  </TabsTrigger>
+                  <TabsTrigger value="image" className="text-lg font-bold rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg">
+                    <Image className="w-5 h-5 mr-2" />
+                    Image Analyzer
+                  </TabsTrigger>
+                </TabsList>
 
-                  <TabsContent value="form">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Left Panel - Input Form */}
-                      <div className="space-y-6">
-                        <h3 className="text-xl font-bold text-gray-900">Listing Details</h3>
+                <TabsContent value="form">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Left Panel - Listing Input */}
+                    <div className="space-y-6">
+                      <h3 className="text-2xl font-bold text-slate-900">Listing Details</h3>
+                      
+                      <div className="space-y-4">
+                        <input 
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors" 
+                          placeholder="Listing Title"
+                          value={listingTitle}
+                          onChange={(e) => setListingTitle(e.target.value)}
+                        />
+                        <input 
+                          type="number" 
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors" 
+                          placeholder="Listing Price ($)"
+                          value={listingPrice}
+                          onChange={(e) => setListingPrice(e.target.value)}
+                        />
+                        <select 
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors"
+                          value={platform}
+                          onChange={(e) => setPlatform(e.target.value)}
+                        >
+                          <option value="">Select Platform</option>
+                          <option value="Facebook Marketplace">Facebook Marketplace</option>
+                          <option value="Craigslist">Craigslist</option>
+                          <option value="Zillow">Zillow</option>
+                          <option value="eBay">eBay</option>
+                          <option value="OfferUp">OfferUp</option>
+                        </select>
                         
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700">Listing Title</Label>
-                            <Input 
-                              placeholder="Enter listing title"
-                              value={listingTitle}
-                              onChange={(e) => setListingTitle(e.target.value)}
-                              className="mt-1 h-11 border-gray-300"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700">Listing Price ($)</Label>
-                            <Input 
-                              type="number" 
-                              placeholder="Enter listing price"
-                              value={listingPrice}
-                              onChange={(e) => setListingPrice(e.target.value)}
-                              className="mt-1 h-11 border-gray-300"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700">Platform</Label>
-                            <Select value={platform} onValueChange={setPlatform}>
-                              <SelectTrigger className="mt-1 h-11 border-gray-300">
-                                <SelectValue placeholder="Select platform" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Facebook Marketplace">Facebook Marketplace</SelectItem>
-                                <SelectItem value="Craigslist">Craigslist</SelectItem>
-                                <SelectItem value="Zillow">Zillow</SelectItem>
-                                <SelectItem value="eBay">eBay</SelectItem>
-                                <SelectItem value="OfferUp">OfferUp</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-sm font-semibold text-gray-700">AI Tone</Label>
-                              <Select value={selectedTone} onValueChange={setSelectedTone}>
-                                <SelectTrigger className="mt-1 h-11 border-gray-300">
-                                  <SelectValue placeholder="Select tone" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {toneOptions.map(tone => (
-                                    <SelectItem key={tone.value} value={tone.value}>{tone.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-semibold text-gray-700">Max Budget ($)</Label>
-                              <Input 
-                                type="number" 
-                                placeholder="Your max budget"
-                                value={budget}
-                                onChange={(e) => setBudget(e.target.value)}
-                                className="mt-1 h-11 border-gray-300"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <Label className="text-sm font-semibold text-gray-700">Extra Notes (Optional)</Label>
-                            <Textarea 
-                              placeholder="Additional context about the item or seller"
-                              value={extraNotes}
-                              onChange={(e) => setExtraNotes(e.target.value)}
-                              className="mt-1 border-gray-300"
-                              rows={3}
-                            />
-                          </div>
-                          
-                          <Button 
-                            onClick={handleGenerateOffer}
-                            disabled={isLoading}
-                            className="w-full h-12 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold disabled:opacity-50"
-                          >
-                            {isLoading ? (
-                              <>
-                                <div className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                                Generating Strategy...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-4 h-4 mr-2" />
-                                Generate Offer & Strategy
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Right Panel - AI Chat */}
-                      <div className="space-y-6">
-                        <h3 className="text-xl font-bold text-gray-900">AI Strategy Chat</h3>
+                        <select 
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors"
+                          value={selectedTone}
+                          onChange={(e) => setSelectedTone(e.target.value)}
+                        >
+                          <option value="">Select Negotiation Tone</option>
+                          <option value="professional">Professional</option>
+                          <option value="friendly">Friendly</option>
+                          <option value="casual">Casual</option>
+                          <option value="assertive">Assertive</option>
+                          <option value="polite">Polite</option>
+                        </select>
                         
-                        <div className="bg-gray-50 rounded-lg p-4 h-80 overflow-y-auto border">
-                          {chatMessages.length === 0 ? (
-                            <div className="text-center text-gray-500 py-12">
-                              <Bot className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                              <p className="text-sm">Generate an offer to start chatting with AI about your strategy</p>
-                            </div>
+                        <input 
+                          type="number" 
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors" 
+                          placeholder="Your Budget (Optional)"
+                          value={budget}
+                          onChange={(e) => setBudget(e.target.value)}
+                        />
+                        
+                        <textarea 
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors" 
+                          rows={4} 
+                          placeholder="Extra Notes or Seller Info (Optional)"
+                          value={extraNotes}
+                          onChange={(e) => setExtraNotes(e.target.value)}
+                        />
+                        
+                        <button 
+                          onClick={handleGenerateOffer}
+                          disabled={isLoading}
+                          className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all text-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? (
+                            <>
+                              <div className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                              Generating Strategy...
+                            </>
                           ) : (
-                            <div className="space-y-4">
-                              {chatMessages.map((message) => (
-                                <div key={message.id} className={`p-3 rounded-lg ${
-                                  message.type === 'ai' 
-                                    ? 'bg-blue-100 text-blue-900 ml-4' 
-                                    : 'bg-gray-200 text-gray-900 mr-4'
-                                }`}>
-                                  <div className="font-semibold text-xs mb-1">
-                                    {message.type === 'ai' ? 'AI Assistant' : 'You'}
-                                  </div>
-                                  <p className="text-sm leading-relaxed">{message.content}</p>
-                                  {message.type === 'ai' && (
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(message.content);
-                                        toast({ title: "Copied to clipboard" });
-                                      }}
-                                      className="mt-2 text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
-                                    >
-                                      <Copy className="w-3 h-3 mr-1 inline" />
-                                      Copy
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                            <>
+                              <Sparkles className="w-6 h-6 mr-3 inline" />
+                              Generate Offer & Message
+                            </>
                           )}
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Ask AI about your negotiation strategy..."
-                            value={sellerMessage}
-                            onChange={(e) => setSellerMessage(e.target.value)}
-                            className="flex-1 h-11 border-gray-300"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter' && !isChatLoading) {
-                                handleSendChatMessage();
-                              }
-                            }}
-                          />
-                          <Button
-                            onClick={handleSendChatMessage}
-                            disabled={isChatLoading || !sellerMessage.trim()}
-                            className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            {isChatLoading ? (
-                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            ) : (
-                              <Send className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
+                        </button>
                       </div>
                     </div>
-                  </TabsContent>
 
-                  <TabsContent value="url">
+                    {/* Right Panel - Generated Strategy */}
                     <div className="space-y-6">
-                      <div className="max-w-2xl mx-auto space-y-6">
-                        <h3 className="text-xl font-bold text-center text-gray-900">Smart URL Parser</h3>
-                        <div className="space-y-4">
-                          <Input
-                            type="url"
-                            placeholder="https://facebook.com/marketplace/item/... or any listing URL"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            className="h-12 text-base border-gray-300"
-                          />
-                          <Button
-                            onClick={handleParseUrl}
-                            disabled={isParsingUrl || !url}
-                            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50"
-                          >
-                            {isParsingUrl ? (
-                              <>
-                                <div className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                                Parsing URL...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-4 h-4 mr-2" />
-                                Parse Listing Information
-                              </>
-                            )}
-                          </Button>
-                        </div>
-
-                        {parsedData && (
-                          <div className="space-y-4">
-                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                              <h4 className="font-bold text-green-800 mb-2">Parsed Successfully!</h4>
-                              <div className="space-y-2 text-sm">
-                                <p><strong>Title:</strong> {parsedData.title}</p>
-                                <p><strong>Price:</strong> ${parsedData.price}</p>
-                                <p><strong>Platform:</strong> {parsedData.platform}</p>
-                                <p><strong>Description:</strong> {parsedData.description}</p>
-                              </div>
-                              <Button
-                                onClick={() => {
-                                  setListingTitle(parsedData.title);
-                                  setListingPrice(parsedData.price);
-                                  setPlatform(parsedData.platform);
-                                  setExtraNotes(parsedData.description);
-                                  setActiveSubTab('form');
-                                }}
-                                className="mt-3 bg-green-600 hover:bg-green-700 text-white"
-                                size="sm"
-                              >
-                                Use This Data
-                              </Button>
+                      <h3 className="text-2xl font-bold text-slate-900">Generated Strategy</h3>
+                      <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 min-h-[400px]">
+                        {generatedOffer && generatedMessage ? (
+                          <div className="space-y-6">
+                            <div className="bg-emerald-50 p-6 rounded-xl border-2 border-emerald-200">
+                              <h4 className="font-bold text-emerald-800 mb-3 text-lg">Suggested Offer:</h4>
+                              <div className="text-4xl font-bold text-emerald-600">${generatedOffer}</div>
+                              {listingPrice && (
+                                <div className="text-emerald-700 mt-2 font-medium">
+                                  Save ${(parseFloat(listingPrice) - parseFloat(generatedOffer)).toLocaleString()} 
+                                  ({Math.round(((parseFloat(listingPrice) - parseFloat(generatedOffer)) / parseFloat(listingPrice)) * 100)}% off)
+                                </div>
+                              )}
                             </div>
-
-                            {/* Better Deals for URL Parser */}
-                            <div className="bg-gray-50 p-4 rounded-lg border">
-                              <h4 className="font-bold text-gray-900 mb-3">Better Deals Found</h4>
-                              <div className="space-y-3">
-                                {betterDeals.map((deal, index) => (
-                                  <div key={index} className="bg-white p-3 rounded-lg border flex justify-between items-center">
-                                    <div>
-                                      <p className="font-semibold text-gray-900">{deal.title}</p>
-                                      <p className="text-sm text-gray-600">{deal.platform} • {deal.location}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-green-600 font-semibold">Save {deal.savings}</p>
-                                      <p className="text-xs text-red-600">{deal.timeLeft}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="bg-blue-50 p-6 rounded-xl border-2 border-blue-200">
+                              <h4 className="font-bold text-blue-800 mb-3 text-lg">Negotiation Message:</h4>
+                              <p className="text-blue-700 leading-relaxed text-lg">{generatedMessage}</p>
+                              <button 
+                                onClick={() => {
+                                  navigator.clipboard.writeText(generatedMessage);
+                                  toast({
+                                    title: "Copied!",
+                                    description: "Message copied to clipboard.",
+                                  });
+                                }}
+                                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                              >
+                                <Copy className="w-4 h-4 mr-2 inline" />
+                                Copy Message
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-slate-500 text-center">
+                            <div>
+                              <Sparkles className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                              <p className="text-xl font-medium">Fill in the listing details to see your personalized negotiation strategy.</p>
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  </TabsContent>
+                  </div>
+                </TabsContent>
 
-                  <TabsContent value="chat">
-                    <div className="max-w-4xl mx-auto space-y-6">
-                      <h3 className="text-xl font-bold text-center text-gray-900">AI Conversation Assistant</h3>
-                      <div className="grid lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <Label className="text-sm font-semibold text-gray-700">Seller's Message</Label>
-                          <Textarea
-                            placeholder="Paste the seller's message here..."
-                            value={sellerMessage}
-                            onChange={(e) => setSellerMessage(e.target.value)}
-                            className="h-32 border-gray-300"
-                          />
-                          <Button
-                            onClick={handleSendChatMessage}
-                            disabled={isChatLoading || !sellerMessage.trim()}
-                            className="w-full h-11 bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50"
-                          >
-                            {isChatLoading ? (
-                              <>
-                                <div className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                                Generating Response...
-                              </>
-                            ) : (
-                              <>
-                                <Bot className="w-4 h-4 mr-2" />
-                                Get AI Response
-                              </>
-                            )}
-                          </Button>
+                <TabsContent value="chat">
+                  <div className="space-y-6">
+                    <h3 className="text-2xl font-bold text-slate-900">AI Strategy Chat</h3>
+                    <div className="bg-slate-50 rounded-2xl p-6 h-96 overflow-y-auto border-2 border-slate-200">
+                      {chatMessages.length === 0 ? (
+                        <div className="text-center py-16 text-slate-500">
+                          <Bot className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                          <h4 className="text-xl font-bold text-slate-700 mb-2">AI Strategy Assistant</h4>
+                          <p className="text-lg">Ask me anything about your negotiation strategy, market insights, or how to improve your approach.</p>
                         </div>
+                      ) : (
                         <div className="space-y-4">
-                          <Label className="text-sm font-semibold text-gray-700">Conversation</Label>
-                          <div className="bg-gray-50 rounded-lg p-4 h-64 overflow-y-auto border">
-                            {chatMessages.length === 0 ? (
-                              <div className="text-center text-gray-500 py-12">
-                                <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                <p className="text-sm">Start a conversation by pasting a seller's message</p>
+                          {chatMessages.map((message) => (
+                            <div key={message.id} className={`flex gap-4 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                message.type === 'ai' 
+                                  ? 'bg-blue-600 text-white' 
+                                  : 'bg-emerald-600 text-white'
+                              }`}>
+                                {message.type === 'ai' ? <Bot className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
                               </div>
-                            ) : (
-                              <div className="space-y-4">
-                                {chatMessages.map((message) => (
-                                  <div key={message.id} className={`p-3 rounded-lg ${
-                                    message.type === 'ai' 
-                                      ? 'bg-blue-100 text-blue-900' 
-                                      : 'bg-gray-200 text-gray-900'
-                                  }`}>
-                                    <div className="font-semibold text-xs mb-1">
-                                      {message.type === 'ai' ? 'AI Assistant' : 'Seller Message'}
+                              <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                                <div className={`inline-block p-4 rounded-2xl max-w-[80%] ${
+                                  message.type === 'ai'
+                                    ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                                    : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                                }`}>
+                                  {message.isVoice && (
+                                    <div className="flex items-center gap-2 mb-2 text-sm font-medium">
+                                      <Mic className="w-4 h-4" />
+                                      Voice Message
                                     </div>
-                                    <p className="text-sm leading-relaxed">{message.content}</p>
-                                    {message.type === 'ai' && (
-                                      <button
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(message.content);
-                                          toast({ title: "Copied to clipboard" });
-                                        }}
-                                        className="mt-2 text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
-                                      >
-                                        <Copy className="w-3 h-3 mr-1 inline" />
-                                        Copy
-                                      </button>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="image">
-                    <div className="max-w-4xl mx-auto space-y-6">
-                      <h3 className="text-xl font-bold text-center text-gray-900">Image Analyzer</h3>
-                      <div className="grid lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <Label className="text-sm font-semibold text-gray-700">Upload Conversation Screenshot</Label>
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                            {uploadedImage ? (
-                              <div className="space-y-4">
-                                <img src={uploadedImage} alt="Uploaded" className="max-w-full h-48 mx-auto rounded-lg" />
-                                <p className="text-green-600 font-semibold">Image uploaded successfully!</p>
-                              </div>
-                            ) : (
-                              <div className="space-y-4">
-                                <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                                <p className="text-gray-600">Upload a conversation screenshot</p>
-                              </div>
-                            )}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
-                              id="image-upload"
-                            />
-                            <label
-                              htmlFor="image-upload"
-                              className="inline-block mt-4 bg-gray-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
-                            >
-                              Choose Image
-                            </label>
-                          </div>
-                          <Button
-                            onClick={analyzeImage}
-                            disabled={isAnalyzing || !uploadedImage}
-                            className="w-full h-11 bg-pink-600 hover:bg-pink-700 text-white font-semibold disabled:opacity-50"
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <div className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                                Analyzing...
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="w-4 h-4 mr-2" />
-                                Analyze Conversation
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <div className="space-y-4">
-                          <Label className="text-sm font-semibold text-gray-700">Analysis Results</Label>
-                          <div className="bg-gray-50 rounded-lg p-4 h-64 border">
-                            {analysisResult ? (
-                              <div className="space-y-4">
-                                <div className="bg-white p-3 rounded border">
-                                  <h4 className="font-semibold text-gray-900 mb-2">Analysis Summary</h4>
-                                  <p className="text-sm text-gray-700 mb-2"><strong>Sentiment:</strong> {analysisResult.sentiment}</p>
-                                  <p className="text-sm text-gray-700 mb-2"><strong>Price Flexibility:</strong> {analysisResult.priceFlexibility}</p>
-                                  <p className="text-sm text-gray-700 mb-2"><strong>Urgency:</strong> {analysisResult.urgency}</p>
-                                  <p className="text-sm text-gray-700"><strong>Suggestion:</strong> {analysisResult.suggestedResponse}</p>
+                                  )}
+                                  {message.isImage && message.imageUrl && (
+                                    <div className="mb-2">
+                                      <img src={message.imageUrl} alt="Shared" className="max-w-48 rounded-lg" />
+                                    </div>
+                                  )}
+                                  <p className="text-lg leading-relaxed">{message.content}</p>
                                 </div>
-
-                                {/* Better Deals for Image Analyzer */}
-                                <div className="bg-white p-3 rounded border">
-                                  <h4 className="font-semibold text-gray-900 mb-2">Better Deals Found</h4>
-                                  <div className="space-y-2">
-                                    {betterDeals.slice(0, 2).map((deal, index) => (
-                                      <div key={index} className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-700">{deal.title}</span>
-                                        <span className="text-green-600 font-semibold">Save {deal.savings}</span>
-                                      </div>
-                                    ))}
-                                  </div>
+                                <p className="text-sm text-slate-500 mt-1">
+                                  {message.timestamp.toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {isChatLoading && (
+                            <div className="flex gap-4">
+                              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                                <Bot className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="bg-blue-100 p-4 rounded-2xl border border-blue-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce delay-100"></div>
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce delay-200"></div>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="text-center text-gray-500 py-12">
-                                <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                <p className="text-sm">Upload and analyze an image to see AI insights</p>
-                              </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-4 items-end">
+                      <div className="flex-1">
+                        <textarea
+                          placeholder="Ask about negotiation strategies, market insights, or get advice..."
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          className="w-full p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-blue-500 transition-colors resize-none"
+                          rows={3}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendChatMessage();
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={handleVoiceRecord}
+                          className={`p-3 rounded-xl transition-all duration-300 ${
+                            isRecording 
+                              ? 'bg-red-600 text-white animate-pulse' 
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                          }`}
+                        >
+                          {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                        </button>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleChatImageUpload}
+                          className="hidden"
+                          ref={chatFileInputRef}
+                        />
+                        <button
+                          onClick={() => chatFileInputRef.current?.click()}
+                          className="p-3 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors"
+                        >
+                          <Paperclip className="w-6 h-6" />
+                        </button>
+                        <button
+                          onClick={handleSendChatMessage}
+                          disabled={!chatInput.trim()}
+                          className="p-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          <Send className="w-6 h-6" />
+                        </button>
                       </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-          </section>
-        )}
+                  </div>
+                </TabsContent>
 
-        {activeTab === 'active' && (
-          <section className="bg-white text-gray-900 p-8 rounded-xl shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold">Active Negotiations</h3>
-            </div>
-            
-            {negotiationTabs.length === 0 ? (
-              <div className="text-center py-12">
-                <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h4 className="text-xl font-bold text-gray-700 mb-2">No Active Negotiations</h4>
-                <p className="text-gray-500 mb-6">Start your first negotiation to begin saving money</p>
-                <Button
-                  onClick={() => setActiveTab('negotiate')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3"
-                >
-                  Start New Negotiation
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {negotiationTabs.map((tab) => (
-                  <div key={tab.id} className="bg-gray-50 p-6 rounded-lg border hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 cursor-pointer" onClick={() => openActiveNegotiation(tab)}>
-                        <h4 className="font-bold text-lg text-gray-900 mb-2">{tab.title || 'New Negotiation'}</h4>
-                        <div className="flex items-center gap-6 text-sm text-gray-600">
-                          <span><strong>Category:</strong> {tab.category || 'Not selected'}</span>
-                          <span><strong>Platform:</strong> {tab.platform || 'Not selected'}</span>
-                          {tab.originalPrice > 0 && <span><strong>Price:</strong> ${tab.originalPrice.toLocaleString()}</span>}
-                          {tab.currentOffer && <span><strong>Offer:</strong> ${tab.currentOffer.toLocaleString()}</span>}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge className="bg-emerald-100 text-emerald-700 font-semibold">Active</Badge>
-                          <span className="text-xs text-gray-500">Created {tab.createdAt.toLocaleDateString()}</span>
-                        </div>
+                <TabsContent value="image">
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <h3 className="text-2xl font-bold text-slate-900">Image Analyzer</h3>
+                      <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center">
+                        {uploadedImage ? (
+                          <div className="space-y-4">
+                            <img src={uploadedImage} alt="Uploaded" className="max-w-full h-64 mx-auto rounded-xl shadow-lg" />
+                            <p className="text-emerald-600 font-bold text-lg">Image uploaded successfully!</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            <Upload className="w-16 h-16 text-slate-400 mx-auto" />
+                            <div>
+                              <p className="text-slate-600 text-xl font-medium mb-2">Upload a conversation screenshot</p>
+                              <p className="text-slate-500">Drag and drop or click to browse</p>
+                            </div>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          ref={fileInputRef}
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="mt-6 bg-slate-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-700 transition-colors"
+                        >
+                          Choose Image
+                        </button>
                       </div>
-                      <Button
-                        onClick={() => closeNegotiationTab(tab.id)}
-                        variant="destructive"
-                        size="sm"
-                        className="ml-4"
+                      <button
+                        onClick={analyzeImage}
+                        disabled={isAnalyzing || !uploadedImage}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all font-bold text-xl disabled:opacity-50"
                       >
-                        <X className="w-4 h-4" />
-                      </Button>
+                        {isAnalyzing ? (
+                          <>
+                            <div className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-6 h-6 mr-3 inline" />
+                            Analyze Conversation
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      <h3 className="text-2xl font-bold text-slate-900">Analysis & Chat</h3>
+                      <div className="bg-slate-50 rounded-2xl p-6 h-80 overflow-y-auto border-2 border-slate-200">
+                        {analysisMessages.length === 0 ? (
+                          <div className="text-center py-16 text-slate-500">
+                            <Eye className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                            <p className="text-lg">Upload and analyze an image to start chatting about the results</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {analysisMessages.map((message) => (
+                              <div key={message.id} className={`flex gap-4 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  message.type === 'ai' 
+                                    ? 'bg-purple-600 text-white' 
+                                    : 'bg-emerald-600 text-white'
+                                }`}>
+                                  {message.type === 'ai' ? <Bot className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                                </div>
+                                <div className={`flex-1 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                                  <div className={`inline-block p-4 rounded-2xl max-w-[80%] ${
+                                    message.type === 'ai'
+                                      ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                      : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                                  }`}>
+                                    <p className="text-lg leading-relaxed">{message.content}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {isAnalysisLoading && (
+                              <div className="flex gap-4">
+                                <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
+                                  <Bot className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="bg-purple-100 p-4 rounded-2xl border border-purple-200">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
+                                    <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce delay-100"></div>
+                                    <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce delay-200"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {analysisMessages.length > 0 && (
+                        <div className="flex gap-4">
+                          <input
+                            type="text"
+                            placeholder="Ask about the analysis results..."
+                            value={analysisInput}
+                            onChange={(e) => setAnalysisInput(e.target.value)}
+                            className="flex-1 p-4 rounded-xl border-2 border-slate-300 text-slate-900 text-lg focus:border-purple-500 transition-colors"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleAnalysisChat();
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={handleAnalysisChat}
+                            disabled={!analysisInput.trim()}
+                            className="p-4 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-50"
+                          >
+                            <Send className="w-6 h-6" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </section>
+      )}
 
-        {activeTab === 'history' && (
-          <section className="bg-white text-gray-900 p-8 rounded-xl shadow-xl">
-            <h3 className="text-2xl font-bold mb-6">Negotiation History</h3>
-            <div className="space-y-4">
-              {completedDeals.map((deal) => (
-                <div key={deal.id} className="bg-gray-50 p-6 rounded-lg border">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-lg">{deal.title}</h4>
-                    <Badge className="bg-green-100 text-green-700 font-semibold">Completed</Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{deal.platform} • Completed {deal.completedAt.toLocaleDateString()}</p>
-                  <div className="flex gap-6 text-sm">
-                    <span><strong>Original:</strong> <span className="line-through">${deal.originalPrice.toLocaleString()}</span></span>
-                    <span><strong>Final:</strong> <span className="text-green-600 font-bold">${deal.finalPrice.toLocaleString()}</span></span>
-                    <span className="text-green-600 font-bold">Saved ${deal.savings.toLocaleString()} ({deal.savingsPercentage}%)</span>
+      {activeTab === 'negotiate' && (
+        <section className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-3xl font-bold text-slate-900">Active Negotiations</h3>
+            <button
+              onClick={startNewNegotiation}
+              className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-6 py-3 rounded-xl font-bold hover:from-emerald-700 hover:to-cyan-700 transition-colors"
+            >
+              <Plus className="w-5 h-5 mr-2 inline" />
+              Start New
+            </button>
+          </div>
+          
+          {negotiationTabs.length === 0 ? (
+            <div className="text-center py-16">
+              <MessageSquare className="w-20 h-20 text-slate-300 mx-auto mb-6" />
+              <h4 className="text-2xl font-bold text-slate-700 mb-4">No Active Negotiations</h4>
+              <p className="text-slate-500 mb-8 text-lg">Start your first negotiation to begin saving money</p>
+              <button
+                onClick={startNewNegotiation}
+                className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-8 py-4 rounded-xl font-bold hover:from-emerald-700 hover:to-cyan-700 transition-colors text-lg"
+              >
+                Start New Negotiation
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {negotiationTabs.map((tab) => (
+                <div key={tab.id} className="bg-slate-50 p-6 rounded-xl border-2 border-slate-200 hover:border-slate-300 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-xl text-slate-900 mb-2">{tab.title || 'Untitled Negotiation'}</h4>
+                      <div className="flex items-center gap-6 text-slate-600">
+                        <span>Category: {tab.category || 'Not selected'}</span>
+                        <span>Platform: {tab.platform || 'Not selected'}</span>
+                        {tab.originalPrice > 0 && <span>Price: ${tab.originalPrice.toLocaleString()}</span>}
+                        <span>Started: {tab.createdAt.toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Badge className="bg-emerald-600 text-white font-bold">Active</Badge>
+                      <button
+                        onClick={() => selectNegotiation(tab.id)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        Continue
+                      </button>
+                      <button
+                        onClick={() => closeNegotiationTab(tab.id)}
+                        className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
+      )}
 
-        {activeTab === 'analytics' && (
-          <section className="bg-white text-gray-900 p-8 rounded-xl shadow-xl">
-            <h3 className="text-2xl font-bold mb-6">Analytics Dashboard</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <h4 className="text-lg font-bold">Savings by Category</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <span className="font-semibold">Cars</span>
-                    <span className="font-bold text-green-600">$2,500</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <span className="font-semibold">Electronics</span>
-                    <span className="font-bold text-green-600">$250</span>
-                  </div>
+      {activeTab === 'history' && (
+        <section className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl">
+          <h3 className="text-3xl font-bold mb-8">Negotiation History</h3>
+          <div className="space-y-6">
+            {completedDeals.map((deal) => (
+              <div key={deal.id} className="bg-slate-50 p-6 rounded-xl border-2 border-slate-200">
+                <div className="flex justify-between items-start mb-4">
+                  <h4 className="font-bold text-xl">{deal.title}</h4>
+                  <Badge className="bg-emerald-600 text-white font-bold">Completed</Badge>
+                </div>
+                <p className="text-slate-600 mb-4 text-lg">{deal.platform} • Completed {deal.completedAt.toLocaleDateString()}</p>
+                <div className="flex gap-8 text-lg">
+                  <span>Original: <span className="line-through">${deal.originalPrice.toLocaleString()}</span></span>
+                  <span>Final: <span className="text-emerald-600 font-bold">${deal.finalPrice.toLocaleString()}</span></span>
+                  <span className="text-emerald-600 font-bold">Saved ${deal.savings.toLocaleString()} ({deal.savingsPercentage}%)</span>
                 </div>
               </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'analytics' && (
+        <section className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl">
+          <h3 className="text-3xl font-bold mb-8">Analytics Dashboard</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <h4 className="text-2xl font-bold">Savings by Category</h4>
               <div className="space-y-4">
-                <h4 className="text-lg font-bold">Success Metrics</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <span className="font-semibold">Success Rate</span>
-                    <span className="font-bold text-blue-600">78%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <span className="font-semibold">Avg. Response Time</span>
-                    <span className="font-bold text-blue-600">2.3 hours</span>
-                  </div>
+                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                  <span className="font-bold text-lg">🚗 Cars</span>
+                  <span className="font-bold text-emerald-600 text-xl">$2,500</span>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                  <span className="font-bold text-lg">💻 Electronics</span>
+                  <span className="font-bold text-emerald-600 text-xl">$250</span>
                 </div>
               </div>
             </div>
-          </section>
-        )}
-      </div>
+            <div className="space-y-6">
+              <h4 className="text-2xl font-bold">Success Metrics</h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                  <span className="font-bold text-lg">Success Rate</span>
+                  <span className="font-bold text-blue-600 text-xl">78%</span>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                  <span className="font-bold text-lg">Avg. Response Time</span>
+                  <span className="font-bold text-blue-600 text-xl">2.3 hours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Deal Completion Dialog */}
       <Dialog open={showDealDialog} onOpenChange={setShowDealDialog}>
-        <DialogContent className="bg-white text-gray-900 max-w-md">
+        <DialogContent className="bg-white text-slate-900 max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
+            <DialogTitle className="text-3xl font-bold text-slate-900">
               Deal Completion
             </DialogTitle>
-            <DialogDescription className="text-gray-700">
+            <DialogDescription className="text-slate-700 text-lg">
               Did you successfully close this deal?
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 pt-4">
+          <div className="space-y-8 pt-6">
             <div className="flex gap-4">
               <Button
                 onClick={() => setDealClosed(true)}
-                className={`flex-1 h-12 font-semibold transition-all duration-300 ${
+                className={`flex-1 h-14 font-bold transition-all duration-300 text-lg ${
                   dealClosed 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                 }`}
               >
-                Yes, Deal Closed!
+                Yes, Deal Closed! 🎉
               </Button>
               <Button
                 onClick={() => setDealClosed(false)}
-                className={`flex-1 h-12 font-semibold transition-all duration-300 ${
+                className={`flex-1 h-14 font-bold transition-all duration-300 text-lg ${
                   !dealClosed 
-                    ? 'bg-gray-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-slate-600 text-white hover:bg-slate-700' 
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                 }`}
               >
                 No, Just Closing
@@ -1158,8 +1211,8 @@ const AppPage = () => {
             </div>
 
             {dealClosed && (
-              <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                <Label htmlFor="finalPrice" className="text-lg font-bold text-green-800">
+              <div className="space-y-4 p-6 bg-emerald-50 rounded-xl border-2 border-emerald-200">
+                <Label htmlFor="finalPrice" className="text-xl font-bold text-emerald-800">
                   What was the final price?
                 </Label>
                 <Input
@@ -1168,7 +1221,7 @@ const AppPage = () => {
                   placeholder="Enter final price"
                   value={finalPrice}
                   onChange={(e) => setFinalPrice(e.target.value)}
-                  className="h-12 text-lg border-2 border-green-300 focus:border-green-500"
+                  className="h-14 text-xl border-2 border-emerald-300 focus:border-emerald-500 bg-white text-slate-900"
                 />
               </div>
             )}
@@ -1177,13 +1230,13 @@ const AppPage = () => {
               <Button
                 onClick={() => setShowDealDialog(false)}
                 variant="outline"
-                className="flex-1 h-12 font-semibold border-2 border-gray-300"
+                className="flex-1 h-14 font-bold border-2 border-slate-300 text-slate-700 text-lg"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleDealCompletion}
-                className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg"
               >
                 Confirm
               </Button>
